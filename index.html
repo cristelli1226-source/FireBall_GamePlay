@@ -113,7 +113,7 @@
     <div class="logo">FZ</div>
     <div>
       <h1>Meus Jogos</h1>
-      <p class="lead">Portfólio simples dos jogos que estão neste repositório — clique em "Jogar" pra abrir cada pasta.</p>
+      <p class="lead">Portfólio simples dos jogos criados — clique em "Jogar" pra abrir cada um.</p>
       <div class="controls">
         <input id="search" class="search" placeholder="Procurar jogo (nome)..." />
       </div>
@@ -122,44 +122,58 @@
 
   <main>
     <div id="grid" class="grid">
-      <!-- EXEMPLO DE CARD (duplique/edite para adicionar mais jogos) -->
-      <article class="card" data-title="Jogo do Labirinto">
-        <img class="thumb" src="jogo1/thumb.png" alt="Thumbnail Jogo do Labirinto" onerror="this.src='assets/default-thumb.png'">
+
+      <!-- 1️⃣ Snake Insano -->
+      <article class="card" data-title="Snake Insano">
+        <img class="thumb" src="snake/thumb.png" alt="Thumbnail Snake Insano" onerror="this.src='assets/default-thumb.png'">
         <div class="meta">
-          <div class="title">Jogo do Labirinto</div>
+          <div class="title">Snake Insano</div>
           <div class="tag">HTML5</div>
         </div>
-        <div class="desc">Um labirinto pequeno com inimigos e coleta de chaves. Use WASD ou setas.</div>
+        <div class="desc">O clássico jogo da cobrinha, mas cada comida te faz crescer até engolir o planeta Terra! Use as setas.</div>
         <div class="actions">
-          <a class="btn" href="jogo1/index.html" target="_blank" rel="noopener">▶ Jogar</a>
-          <a class="btn secondary" href="https://github.com/seuusuario/seu-repo/tree/main/jogo1" target="_blank" rel="noopener">Código</a>
+          <a class="btn" href="snake/index.html" target="_blank" rel="noopener">▶ Jogar</a>
+          <a class="btn secondary" href="https://github.com/junao/snake-insano" target="_blank" rel="noopener">Código</a>
         </div>
       </article>
 
-      <!-- Outro exemplo -->
-      <article class="card" data-title="Pong Clássico">
-        <img class="thumb" src="jogo2/thumb.png" alt="Thumbnail Pong Clássico" onerror="this.src='assets/default-thumb.png'">
+      <!-- 2️⃣ Space Shooter -->
+      <article class="card" data-title="Space Shooter">
+        <img class="thumb" src="space/thumb.png" alt="Thumbnail Space Shooter" onerror="this.src='assets/default-thumb.png'">
         <div class="meta">
-          <div class="title">Pong Clássico</div>
+          <div class="title">Space Shooter</div>
           <div class="tag">Canvas</div>
         </div>
-        <div class="desc">Pong simples com placar local e IA ajustável.</div>
+        <div class="desc">Controle sua nave, destrua meteoros e chefes intergalácticos. Power-ups e trilha retrô incluídos.</div>
         <div class="actions">
-          <a class="btn" href="jogo2/index.html" target="_blank" rel="noopener">▶ Jogar</a>
-          <a class="btn secondary" href="https://github.com/seuusuario/seu-repo/tree/main/jogo2" target="_blank" rel="noopener">Código</a>
+          <a class="btn" href="space/index.html" target="_blank" rel="noopener">▶ Jogar</a>
+          <a class="btn secondary" href="https://github.com/junao/space-shooter" target="_blank" rel="noopener">Código</a>
         </div>
       </article>
 
-      <!-- Adicione mais cards aqui -->
+      <!-- 3️⃣ Flappy Dragon -->
+      <article class="card" data-title="Flappy Dragon">
+        <img class="thumb" src="flappy/thumb.png" alt="Thumbnail Flappy Dragon" onerror="this.src='assets/default-thumb.png'">
+        <div class="meta">
+          <div class="title">Flappy Dragon</div>
+          <div class="tag">JS Game</div>
+        </div>
+        <div class="desc">Guie o dragão pelos portais mágicos e acumule pontos! Um desafio de reflexo e paciência.</div>
+        <div class="actions">
+          <a class="btn" href="flappy/index.html" target="_blank" rel="noopener">▶ Jogar</a>
+          <a class="btn secondary" href="https://github.com/junao/flappy-dragon" target="_blank" rel="noopener">Código</a>
+        </div>
+      </article>
+
     </div>
   </main>
 
   <footer>
-    Dica: coloque em cada pasta do jogo um arquivo `thumb.png` e `index.html`. Para publicar, ative o GitHub Pages nas configurações do repositório.
+    Dica: coloque em cada pasta do jogo um arquivo <code>thumb.png</code> e <code>index.html</code>.  
+    Para publicar, ative o GitHub Pages nas configurações do repositório.
   </footer>
 
   <script>
-    // Busca simples no client-side
     const search = document.getElementById('search');
     const cards = Array.from(document.querySelectorAll('.card'));
     search.addEventListener('input', () => {

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Meus Jogos — Junão</title>
+  <style>
+    :root{
+      --bg:#0b0f14;
+      --card:#0f1720;
+      --muted:#9aa6b2;
+      --accent:#ff6b35;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter, "Segoe UI", Roboto, Arial, sans-serif;
+      background: linear-gradient(180deg, var(--bg), #061018 140%);
+      color:#e6eef6;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      padding:32px;
+    }
+
+    header{
+      display:flex;
+      gap:16px;
+      align-items:center;
+      margin-bottom:20px;
+    }
+    .logo{
+      width:64px;
+      height:64px;
+      border-radius:12px;
+      background:linear-gradient(135deg,#ff9a5b,#ff3d3d);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:800;
+      color:#111;
+      font-size:20px;
+      box-shadow:0 8px 24px rgba(255,100,50,0.12);
+    }
+    h1{margin:0;font-size:20px}
+    p.lead{color:var(--muted); margin:4px 0 0; font-size:13px}
+
+    .controls{
+      margin-top:18px;
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+    .search{
+      padding:8px 12px;
+      border-radius:10px;
+      background:#071019;
+      border:1px solid rgba(255,255,255,0.03);
+      color:var(--muted);
+      outline:none;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+      gap:18px;
+      margin-top:22px;
+    }
+
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:12px;
+      padding:12px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      box-shadow:0 6px 20px rgba(2,6,23,0.7);
+      border:1px solid rgba(255,255,255,0.03);
+      transition:transform .14s ease, box-shadow .14s ease;
+    }
+    .card:hover{ transform:translateY(-6px); box-shadow:0 14px 40px rgba(2,6,23,0.9); }
+
+    .thumb{
+      width:100%;
+      height:140px;
+      border-radius:8px;
+      object-fit:cover;
+      background:linear-gradient(180deg,#0b1220,#071018);
+      display:block;
+    }
+
+    .meta{display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .title{font-weight:700;font-size:15px}
+    .tag{font-size:12px;padding:6px 8px;border-radius:999px;background:rgba(255,255,255,0.03);color:var(--muted)}
+
+    .desc{color:var(--muted);font-size:13px;line-height:1.3}
+
+    .actions{display:flex;gap:8px;margin-top:auto}
+    .btn{
+      padding:8px 12px;border-radius:10px;border:0;background:var(--accent);color:#081018;font-weight:700;cursor:pointer;text-decoration:none;
+    }
+    .btn.secondary{
+      background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,0.04);font-weight:600;
+    }
+
+    footer{color:var(--muted);font-size:13px;margin-top:28px;text-align:center}
+    @media (max-width:420px){
+      .thumb{height:110px}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">FZ</div>
+    <div>
+      <h1>Meus Jogos</h1>
+      <p class="lead">Portfólio simples dos jogos que estão neste repositório — clique em "Jogar" pra abrir cada pasta.</p>
+      <div class="controls">
+        <input id="search" class="search" placeholder="Procurar jogo (nome)..." />
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div id="grid" class="grid">
+      <!-- EXEMPLO DE CARD (duplique/edite para adicionar mais jogos) -->
+      <article class="card" data-title="Jogo do Labirinto">
+        <img class="thumb" src="jogo1/thumb.png" alt="Thumbnail Jogo do Labirinto" onerror="this.src='assets/default-thumb.png'">
+        <div class="meta">
+          <div class="title">Jogo do Labirinto</div>
+          <div class="tag">HTML5</div>
+        </div>
+        <div class="desc">Um labirinto pequeno com inimigos e coleta de chaves. Use WASD ou setas.</div>
+        <div class="actions">
+          <a class="btn" href="jogo1/index.html" target="_blank" rel="noopener">▶ Jogar</a>
+          <a class="btn secondary" href="https://github.com/seuusuario/seu-repo/tree/main/jogo1" target="_blank" rel="noopener">Código</a>
+        </div>
+      </article>
+
+      <!-- Outro exemplo -->
+      <article class="card" data-title="Pong Clássico">
+        <img class="thumb" src="jogo2/thumb.png" alt="Thumbnail Pong Clássico" onerror="this.src='assets/default-thumb.png'">
+        <div class="meta">
+          <div class="title">Pong Clássico</div>
+          <div class="tag">Canvas</div>
+        </div>
+        <div class="desc">Pong simples com placar local e IA ajustável.</div>
+        <div class="actions">
+          <a class="btn" href="jogo2/index.html" target="_blank" rel="noopener">▶ Jogar</a>
+          <a class="btn secondary" href="https://github.com/seuusuario/seu-repo/tree/main/jogo2" target="_blank" rel="noopener">Código</a>
+        </div>
+      </article>
+
+      <!-- Adicione mais cards aqui -->
+    </div>
+  </main>
+
+  <footer>
+    Dica: coloque em cada pasta do jogo um arquivo `thumb.png` e `index.html`. Para publicar, ative o GitHub Pages nas configurações do repositório.
+  </footer>
+
+  <script>
+    // Busca simples no client-side
+    const search = document.getElementById('search');
+    const cards = Array.from(document.querySelectorAll('.card'));
+    search.addEventListener('input', () => {
+      const q = search.value.trim().toLowerCase();
+      cards.forEach(card => {
+        const title = (card.dataset.title || '').toLowerCase();
+        const desc = (card.querySelector('.desc')?.textContent || '').toLowerCase();
+        card.style.display = (q === '' || title.includes(q) || desc.includes(q)) ? '' : 'none';
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,819 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Arco do Índio — Jogo</title>
+<style>
+  :root{
+    --bg:#0b1220;
+    --panel:#0f1724;
+    --accent:#ffb86b;
+  }
+  body{
+    margin:0;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    background: linear-gradient(180deg,#071024 0%, #0b1220 100%);
+    color:#e6eef8;
+    display:flex;
+    gap:16px;
+    padding:18px;
+    align-items:flex-start;
+    min-height: 100vh;
+  }
+  .left{
+    width:820px;
+    background:transparent;
+  }
+  .right{
+    min-width:300px;
+    background:var(--panel);
+    border-radius:12px;
+    padding:14px;
+    box-shadow: 0 8px 30px rgba(2,6,23,0.6);
+  }
+  canvas{ 
+    background: linear-gradient(180deg,#7ebd8a22, #2f5a2a11); 
+    border-radius:8px; 
+    display:block; 
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  }
+  h1{margin:0 0 10px 0; font-size:18px}
+  label{display:block; font-size:13px; margin-top:10px}
+  input[type=file]{width:100%}
+  button{
+    margin-top:10px; 
+    width:100%; 
+    padding:10px; 
+    border-radius:8px; 
+    border:0; 
+    cursor:pointer; 
+    background:var(--accent); 
+    color:#0b1220; 
+    font-weight:600;
+    transition: all 0.2s ease;
+  }
+  button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(255, 184, 107, 0.3);
+  }
+  .info{font-size:13px; margin-top:8px; line-height:1.3}
+  .score{font-size:24px; font-weight:700; margin-top:12px}
+  .level{font-size:18px; font-weight:600; margin-top:8px; color: var(--accent)}
+  .controls{display:flex; gap:8px; margin-top:8px}
+  .controls button{flex:1; background:#1f2937; color:#fff; border:1px solid #2b3947}
+  small {opacity:0.8}
+  .game-stats {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    background: rgba(15, 23, 36, 0.7);
+    padding: 8px 12px;
+    border-radius: 6px;
+  }
+  .game-stats div {
+    text-align: center;
+  }
+  .game-stats .value {
+    font-weight: bold;
+    color: var(--accent);
+  }
+  .game-stats .label {
+    font-size: 11px;
+    opacity: 0.8;
+  }
+  .progress-bar {
+    height: 6px;
+    background: #1f2937;
+    border-radius: 3px;
+    margin-top: 5px;
+    overflow: hidden;
+  }
+  .progress {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.3s ease;
+  }
+  @media (max-width: 1200px) {
+    body {
+      flex-direction: column;
+    }
+    .left, .right {
+      width: 100%;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="left">
+  <h1>Arco do Índio — Jogo</h1>
+  <canvas id="game" width="820" height="520"></canvas>
+  
+  <div class="game-stats">
+    <div>
+      <div class="value" id="accuracy">0%</div>
+      <div class="label">Precisão</div>
+    </div>
+    <div>
+      <div class="value" id="streak">0</div>
+      <div class="label">Sequência</div>
+    </div>
+    <div>
+      <div class="value" id="shots">0</div>
+      <div class="label">Flechas</div>
+    </div>
+  </div>
+  
+  <div style="margin-top:8px; color:#bcd7ff">
+    <small>Controles: <strong>Clique</strong> ou <strong>Barra de Espaço</strong> para disparar. Mira oscila automaticamente. Use o painel à direita para trocar imagens.</small>
+  </div>
+</div>
+
+<div class="right">
+  <h1>Personalizar imagens</h1>
+  <label>Maçã (upload PNG/JPG)</label>
+  <input id="appleFile" type="file" accept="image/*">
+  <label>Imagem do personagem (upload - será aplicada aos 5)</label>
+  <input id="charFile" type="file" accept="image/*">
+  <label>Flecha (upload)</label>
+  <input id="arrowFile" type="file" accept="image/*">
+  <label>Índio (upload)</label>
+  <input id="indianFile" type="file" accept="image/*">
+
+  <div class="controls">
+    <button id="resetBtn">Reiniciar</button>
+    <button id="randomizeBtn">Aleatorizar posições</button>
+  </div>
+
+  <div class="score" id="score">Pontos: 0</div>
+  <div class="level" id="level">Nível: 1</div>
+  
+  <div class="progress-bar">
+    <div class="progress" id="levelProgress"></div>
+  </div>
+
+  <div class="info">
+    <strong>Dicas:</strong>
+    <ul>
+      <li>Se quiser imagens temporárias rápido, arraste elas pro input.</li>
+      <li>Sem imagem carregada, o jogo desenha formas simples (fácil pra testar).</li>
+      <li>Precisa ajustar a sensibilidade da mira? Edita a variável <code>aimSpeed</code> no código.</li>
+      <li>Use a barra de espaço para atirar mais rapidamente.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+/*
+  Jogo: Arco do Índio
+  - Mira automática oscilante
+  - Clique para atirar
+  - 5 personagens com maçã na cabeça
+  - Upload de imagens para maçã, personagem, flecha e índio
+*/
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+const W = canvas.width;
+const H = canvas.height;
+
+// Game state
+let score = 0;
+let level = 1;
+let arrows = [];
+let characters = [];
+let lastTime = 0;
+let running = true;
+let shotsFired = 0;
+let shotsHit = 0;
+let currentStreak = 0;
+let bestStreak = 0;
+
+// Game difficulty settings
+const levelSettings = [
+  { speed: 1.2, count: 5, spacing: 80 }, // Level 1
+  { speed: 1.5, count: 6, spacing: 70 }, // Level 2
+  { speed: 1.8, count: 7, spacing: 60 }, // Level 3
+  { speed: 2.1, count: 8, spacing: 55 }, // Level 4
+  { speed: 2.4, count: 9, spacing: 50 }, // Level 5
+];
+
+// Resources (Images)
+const resources = {
+  apple: null,
+  char: null,
+  arrow: null,
+  indian: null,
+};
+
+// Sound effects (using Web Audio API)
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+function playSound(frequency, duration, type = 'sine') {
+  if (audioContext.state === 'suspended') {
+    audioContext.resume();
+  }
+  
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  
+  oscillator.frequency.value = frequency;
+  oscillator.type = type;
+  
+  gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+  
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + duration);
+}
+
+// Default simple images drawn if no uploads:
+function drawDefaultApple(ctx, x, y, size){
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.beginPath();
+  ctx.fillStyle = '#e11d48'; // red
+  ctx.ellipse(0,0,size*0.55,size*0.65,0,0,Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = '#2b6b2b';
+  ctx.fillRect(-6,-size*0.9,12,10);
+  ctx.restore();
+}
+function drawDefaultChar(ctx, x, y, size){
+  ctx.save();
+  ctx.translate(x,y);
+  // body
+  ctx.fillStyle = '#7c4a0a';
+  ctx.beginPath();
+  ctx.ellipse(0, size*0.5, size*0.7, size*1.1,0,0,Math.PI*2);
+  ctx.fill();
+  // head
+  ctx.fillStyle = '#f6d6b0';
+  ctx.beginPath();
+  ctx.arc(0, -size*0.3, size*0.55, 0, Math.PI*2);
+  ctx.fill();
+  // cross belt
+  ctx.strokeStyle='#2b2b2b'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(-size*0.6, size*0.3); ctx.lineTo(size*0.6, -size*0.4); ctx.stroke();
+  ctx.restore();
+}
+function drawDefaultArrow(ctx, x, y, angle, length=60){
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.rotate(angle);
+  ctx.beginPath();
+  ctx.moveTo(0,0);
+  ctx.lineTo(length, 0);
+  ctx.strokeStyle='#553b1b';
+  ctx.lineWidth=4;
+  ctx.stroke();
+  // tip
+  ctx.beginPath();
+  ctx.moveTo(length, 0);
+  ctx.lineTo(length-10, -6);
+  ctx.lineTo(length-10, 6);
+  ctx.closePath();
+  ctx.fillStyle='#222';
+  ctx.fill();
+  ctx.restore();
+}
+function drawDefaultIndian(ctx, x, y) {
+  ctx.save();
+  ctx.translate(x, y);
+  
+  // body
+  ctx.fillStyle = '#6b3e1a';
+  ctx.beginPath();
+  ctx.ellipse(0, 26, 46, 40, 0, 0, Math.PI*2);
+  ctx.fill();
+  
+  // head
+  ctx.fillStyle = '#f2d1b0';
+  ctx.beginPath();
+  ctx.arc(-6, -40, 26, 0, Math.PI*2);
+  ctx.fill();
+  
+  // facial features
+  ctx.fillStyle = '#000';
+  ctx.beginPath(); // eyes
+  ctx.arc(-14, -45, 4, 0, Math.PI*2);
+  ctx.arc(2, -45, 4, 0, Math.PI*2);
+  ctx.fill();
+  
+  ctx.beginPath(); // mouth
+  ctx.arc(-6, -30, 8, 0, Math.PI);
+  ctx.stroke();
+  
+  // hair
+  ctx.fillStyle = '#2b1a0a';
+  ctx.beginPath();
+  ctx.arc(-6, -65, 20, 0, Math.PI, true);
+  ctx.fill();
+  
+  // headband
+  ctx.fillStyle = '#e11d48';
+  ctx.fillRect(-30, -55, 60, 8);
+  
+  ctx.restore();
+}
+
+// Indian position and aim
+const indian = {
+  x: 110,
+  y: H - 120,
+  baseAngle: -12 * Math.PI/180,
+  angle: -12 * Math.PI/180,
+  aimRange: 60 * Math.PI/180, // +-30 degrees
+  aimSpeed: 1.2, // rad/s for oscillation (affects speed)
+  aimDir: 1, // 1 or -1
+  length: 160
+};
+
+// Character setup
+function createCharacters(){
+  characters = [];
+  const settings = levelSettings[level-1];
+  const count = settings.count;
+  const startX = 520;
+  const gapY = settings.spacing;
+  const top = 120;
+  for(let i=0;i<count;i++){
+    characters.push({
+      x: startX + (i%2)*0, // all aligned vertically for simplicity
+      y: top + i * gapY,
+      w: 80,
+      h: 120,
+      appleOffsetY: -60,
+      alive: true,
+      hit: false,
+      bobOffset: Math.random() * Math.PI * 2, // For bobbing animation
+      bobSpeed: 0.5 + Math.random() * 1.5 // Different speeds for each character
+    });
+  }
+}
+createCharacters();
+
+// Arrow class
+class Arrow {
+  constructor(x,y,angle, speed=900){
+    this.x = x;
+    this.y = y;
+    this.angle = angle;
+    this.speed = speed; // px per second
+    this.vx = Math.cos(angle)*speed;
+    this.vy = Math.sin(angle)*speed;
+    this.active = true;
+    this.spawn = performance.now();
+    this.trail = []; // For trail effect
+    this.maxTrail = 8;
+  }
+  update(dt){
+    if(!this.active) return;
+    
+    // Store position for trail
+    this.trail.push({x: this.x, y: this.y});
+    if(this.trail.length > this.maxTrail) {
+      this.trail.shift();
+    }
+    
+    this.x += this.vx * dt;
+    this.y += this.vy * dt;
+    // off-screen
+    if(this.x > W + 100 || this.y < -100 || this.y > H + 100) this.active = false;
+  }
+  draw(ctx){
+    if(!this.active) return;
+    
+    // Draw trail
+    for(let i = 0; i < this.trail.length; i++) {
+      const point = this.trail[i];
+      const alpha = i / this.trail.length * 0.5;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      if(resources.arrow){
+        const img = resources.arrow;
+        ctx.translate(point.x, point.y);
+        ctx.rotate(this.angle);
+        ctx.drawImage(img, -10, -img.height/4, img.width*0.6, img.height*0.6);
+      } else {
+        drawDefaultArrow(ctx, point.x, point.y, this.angle, 60 * (i/this.trail.length));
+      }
+      ctx.restore();
+    }
+    
+    if(resources.arrow){
+      const img = resources.arrow;
+      ctx.save();
+      ctx.translate(this.x, this.y);
+      ctx.rotate(this.angle);
+      ctx.drawImage(img, -10, -img.height/4, img.width*0.6, img.height*0.6);
+      ctx.restore();
+    } else {
+      drawDefaultArrow(ctx, this.x, this.y, this.angle);
+    }
+  }
+  tip(){
+    // tip coordinates (front of arrow)
+    const len = 40;
+    return {x: this.x + Math.cos(this.angle)*len, y: this.y + Math.sin(this.angle)*len};
+  }
+}
+
+// Input handlers for uploads
+document.getElementById('appleFile').addEventListener('change', e=>{
+  const f = e.target.files[0];
+  if(!f) return;
+  const img = new Image();
+  img.onload = ()=> resources.apple = img;
+  img.src = URL.createObjectURL(f);
+});
+document.getElementById('charFile').addEventListener('change', e=>{
+  const f = e.target.files[0];
+  if(!f) return;
+  const img = new Image();
+  img.onload = ()=> resources.char = img;
+  img.src = URL.createObjectURL(f);
+});
+document.getElementById('arrowFile').addEventListener('change', e=>{
+  const f = e.target.files[0];
+  if(!f) return;
+  const img = new Image();
+  img.onload = ()=> resources.arrow = img;
+  img.src = URL.createObjectURL(f);
+});
+document.getElementById('indianFile').addEventListener('change', e=>{
+  const f = e.target.files[0];
+  if(!f) return;
+  const img = new Image();
+  img.onload = ()=> resources.indian = img;
+  img.src = URL.createObjectURL(f);
+});
+
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  resetGame();
+});
+document.getElementById('randomizeBtn').addEventListener('click', ()=>{
+  shufflePositions();
+});
+
+function resetGame(){
+  score = 0;
+  level = 1;
+  arrows = [];
+  shotsFired = 0;
+  shotsHit = 0;
+  currentStreak = 0;
+  createCharacters();
+  updateUI();
+}
+
+function shufflePositions(){
+  // small shuffle vertically
+  for(let ch of characters){
+    ch.y = 120 + Math.random() * (H - 260);
+    ch.alive = true;
+    ch.hit = false;
+  }
+}
+
+// Shooting (click and spacebar)
+canvas.addEventListener('click', (ev)=>{
+  shootArrow();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') {
+    e.preventDefault();
+    shootArrow();
+  }
+});
+
+function shootArrow() {
+  // shoot from indian bow tip (calculate bow tip)
+  const tipX = indian.x + Math.cos(indian.angle) * indian.length;
+  const tipY = indian.y + Math.sin(indian.angle) * indian.length;
+  arrows.push(new Arrow(tipX, tipY, indian.angle));
+  shotsFired++;
+  
+  // Play shooting sound
+  playSound(150, 0.1, 'sawtooth');
+  
+  updateUI();
+}
+
+// Basic collision detection: arrow tip inside apple bounding box
+function checkCollisions(){
+  for(let arrow of arrows){
+    if(!arrow.active) continue;
+    const t = arrow.tip();
+    for(let ch of characters){
+      if(!ch.alive) continue;
+      const appleX = ch.x;
+      const appleY = ch.y + ch.appleOffsetY;
+      const aw = 36, ah = 36; // apple box size (tweakable)
+      // If apple image exists, we can scale bounding box by img size
+      let bx = appleX - aw/2, by = appleY - ah/2, bw = aw, bh = ah;
+      // If user image loaded, set box based on image
+      if(resources.apple){
+        const s = 0.36;
+        const img = resources.apple;
+        bw = img.width * s;
+        bh = img.height * s;
+        bx = appleX - bw/2;
+        by = appleY - bh/2;
+      }
+      if(t.x >= bx && t.x <= bx + bw && t.y >= by && t.y <= by + bh){
+        // hit!
+        ch.alive = false;
+        ch.hit = true;
+        arrow.active = false;
+        score += 100;
+        shotsHit++;
+        currentStreak++;
+        if (currentStreak > bestStreak) bestStreak = currentStreak;
+        
+        // Play hit sound
+        playSound(523, 0.3, 'triangle');
+        
+        updateUI();
+        // small particle / feedback
+        spawnHitEffect(t.x, t.y);
+        
+        // Check if level is complete
+        checkLevelComplete();
+      }
+    }
+  }
+  
+  // Reset streak if all arrows missed
+  if (arrows.length > 0 && arrows.every(a => !a.active)) {
+    currentStreak = 0;
+  }
+}
+
+function checkLevelComplete() {
+  const aliveCount = characters.filter(ch => ch.alive).length;
+  if (aliveCount === 0) {
+    // Level complete!
+    level++;
+    if (level > levelSettings.length) {
+      level = levelSettings.length; // Cap at max level
+    }
+    
+    // Play level up sound
+    playSound(659, 0.5, 'sine');
+    playSound(784, 0.5, 'sine');
+    
+    createCharacters();
+    updateUI();
+  }
+}
+
+// Simple hit effect
+let effects = [];
+function spawnHitEffect(x,y){
+  // Create multiple particles for a better effect
+  for(let i = 0; i < 8; i++) {
+    effects.push({
+      x, 
+      y, 
+      vx: (Math.random() - 0.5) * 200,
+      vy: (Math.random() - 0.5) * 200,
+      t: 0,
+      life: 0.5 + Math.random() * 0.3
+    });
+  }
+}
+
+// Update/draw loop
+function update(dt){
+  // update aim oscillation using sine for smooth motion
+  const t = performance.now()/1000;
+  const half = indian.aimRange / 2;
+  // oscillate around baseAngle
+  indian.angle = indian.baseAngle + Math.sin(t * indian.aimSpeed) * half;
+
+  // update arrows
+  for(let a of arrows) a.update(dt);
+
+  // update characters with bobbing animation
+  for(let ch of characters) {
+    if (ch.alive) {
+      ch.bobOffset += ch.bobSpeed * dt;
+    }
+  }
+
+  // update effects
+  for(let ef of effects) {
+    ef.t += dt;
+    ef.x += ef.vx * dt;
+    ef.y += ef.vy * dt;
+    ef.vy += 300 * dt; // gravity
+  }
+  effects = effects.filter(e => e.t < e.life);
+
+  checkCollisions();
+}
+
+function draw(){
+  // clear
+  ctx.clearRect(0,0,W,H);
+
+  // Draw background with gradient
+  const gradient = ctx.createLinearGradient(0, 0, 0, H);
+  gradient.addColorStop(0, '#071024');
+  gradient.addColorStop(1, '#0b1220');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, W, H);
+
+  // Draw some stars in the background
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+  for(let i = 0; i < 50; i++) {
+    const x = (i * 123) % W;
+    const y = (i * 67) % (H - 100);
+    const size = 1 + (i % 3);
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // ground
+  ctx.fillStyle = '#1f2b18';
+  ctx.fillRect(0, H-80, W, 80);
+
+  // draw Indian (simple sprite)
+  // body
+  drawIndian();
+
+  // draw characters
+  for(let ch of characters){
+    drawCharacter(ch);
+  }
+
+  // draw arrows
+  for(let a of arrows) a.draw(ctx);
+
+  // draw effects
+  for(let ef of effects){
+    ctx.save();
+    const progress = ef.t / ef.life;
+    ctx.globalAlpha = 1 - progress;
+    ctx.beginPath();
+    ctx.arc(ef.x, ef.y, 8 * (1 - progress), 0, Math.PI*2);
+    ctx.fillStyle = '#ffeb3b';
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // HUD: float text
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.font = '14px Inter, Arial';
+  ctx.fillText('Pontos: ' + score, 12, 22);
+  ctx.fillText('Nível: ' + level, 12, 40);
+  ctx.fillText('Clique ou Espaço para atirar', 12, 58);
+  
+  // Draw streak indicator if streak > 0
+  if (currentStreak > 0) {
+    ctx.save();
+    ctx.fillStyle = '#ffeb3b';
+    ctx.font = 'bold 16px Inter, Arial';
+    ctx.fillText('Sequência: ' + currentStreak, W - 120, 22);
+    ctx.restore();
+  }
+}
+
+function drawIndian(){
+  // draw body
+  ctx.save();
+  ctx.translate(indian.x, indian.y);
+  
+  // Draw Indian image or default
+  if(resources.indian){
+    const img = resources.indian;
+    const w = img.width * 0.4;
+    const h = img.height * 0.4;
+    ctx.drawImage(img, -w/2, -h/2, w, h);
+  } else {
+    drawDefaultIndian(ctx, 0, 0);
+  }
+
+  // bow line (the aim)
+  ctx.strokeStyle = '#e6b86b';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(0, -6);
+  const tipX = Math.cos(indian.angle) * indian.length;
+  const tipY = Math.sin(indian.angle) * indian.length;
+  ctx.lineTo(tipX, tipY);
+  ctx.stroke();
+
+  // draw arrow nocked (preview)
+  drawDefaultArrow(ctx, 28, -8, indian.angle, 60);
+
+  ctx.restore();
+}
+
+function drawCharacter(ch){
+  const x = ch.x;
+  const y = ch.y + (ch.alive ? Math.sin(ch.bobOffset) * 3 : 0); // Bobbing effect if alive
+  const scale = 0.8;
+
+  // shadow
+  ctx.save();
+  ctx.globalAlpha = 0.15;
+  ctx.beginPath();
+  ctx.ellipse(x, y + 60, 50, 14,0,0,Math.PI*2);
+  ctx.fillStyle = '#000';
+  ctx.fill();
+  ctx.restore();
+
+  // character image or default
+  if(resources.char){
+    const img = resources.char;
+    const w = img.width * 0.24 * scale;
+    const h = img.height * 0.24 * scale;
+    ctx.drawImage(img, x - w/2, y - h/2, w, h);
+  } else {
+    drawDefaultChar(ctx, x, y, 42 * scale);
+  }
+
+  // apple
+  const ax = x;
+  const ay = y + ch.appleOffsetY + (ch.alive ? Math.sin(ch.bobOffset) * 3 : 0);
+  if(resources.apple){
+    const img = resources.apple;
+    const s = 0.36;
+    const w = img.width * s;
+    const h = img.height * s;
+    ctx.drawImage(img, ax - w/2, ay - h/2, w, h);
+  } else {
+    drawDefaultApple(ctx, ax, ay, 18);
+  }
+
+  // forehead mark / crosshair if alive
+  if(!ch.alive){
+    ctx.save();
+    ctx.translate(x, y + ch.appleOffsetY);
+    ctx.rotate(Math.random()*0.4 - 0.2);
+    ctx.globalAlpha = 0.9;
+    ctx.font = '18px Inter';
+    ctx.fillStyle = '#ffeb3b';
+    ctx.fillText('✓', -8, 8);
+    ctx.restore();
+  }
+}
+
+// UI update
+function updateUI(){
+  document.getElementById('score').innerText = 'Pontos: ' + score;
+  document.getElementById('level').innerText = 'Nível: ' + level;
+  
+  // Calculate accuracy
+  const accuracy = shotsFired > 0 ? Math.round((shotsHit / shotsFired) * 100) : 0;
+  document.getElementById('accuracy').innerText = accuracy + '%';
+  
+  document.getElementById('streak').innerText = bestStreak;
+  document.getElementById('shots').innerText = shotsFired;
+  
+  // Update level progress
+  const aliveCount = characters.filter(ch => ch.alive).length;
+  const totalCount = characters.length;
+  const progress = ((totalCount - aliveCount) / totalCount) * 100;
+  document.getElementById('levelProgress').style.width = progress + '%';
+}
+
+// Main loop
+function loop(ts){
+  if(!lastTime) lastTime = ts;
+  const dt = (ts - lastTime) / 1000;
+  lastTime = ts;
+
+  if(running){
+    update(dt);
+    draw();
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// Basic cleanup: remove inactive arrows occasionally
+setInterval(()=> {
+  arrows = arrows.filter(a=>a.active);
+}, 1200);
+
+// Keyboard: R to reset
+window.addEventListener('keydown', (e)=>{
+  if(e.key.toLowerCase() === 'r') resetGame();
+});
+
+// Initial UI update
+updateUI();
+
+</script>
+</body>
+</html>

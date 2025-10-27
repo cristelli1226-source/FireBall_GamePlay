@@ -1,1 +1,2445 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🔥 Reflex Trainer CS Edition - ÉPICO! 💣</title>
+<style>
+  * {
+    box-sizing: border-box;
+    touch-action: manipulation;
+  }
+  body {
+    background: #111;
+    color: #fff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden;
+    margin: 0;
+    padding: 10px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    overflow-y: auto;
+    padding: 10px 0;
+  }
+  #menu-screen { 
+    background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%); 
+  }
+  #game-screen { display: none; }
+  #shop-screen { 
+    display: none; 
+    background: linear-gradient(135deg, #2a1a2a 0%, #1a2a2a 100%); 
+  }
 
+  h1 {
+    margin-bottom: 15px;
+    font-size: clamp(1.5rem, 5vw, 2.5rem);
+    text-shadow: 0 0 15px #ff3b3b;
+    background: linear-gradient(45deg, #ff3b3b, #ff7b7b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1.2;
+  }
+
+  h2 {
+    margin-bottom: 10px;
+    color: #ff7b7b;
+    font-size: 1.2rem;
+  }
+
+  .time-options, .difficulty-options, .game-mode-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 90%;
+    max-width: 300px;
+    margin-bottom: 15px;
+  }
+
+  .time-btn, .diff-btn, .mode-btn, .shop-btn {
+    background: linear-gradient(45deg, #333, #444);
+    color: #fff;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: bold;
+    transition: all 0.3s ease;
+  }
+
+  .time-btn:hover, .time-btn.selected,
+  .diff-btn:hover, .diff-btn.selected,
+  .mode-btn:hover, .mode-btn.selected,
+  .shop-btn:hover:not(:disabled) {
+    background: linear-gradient(45deg, #ff3b3b, #ff5b5b);
+    box-shadow: 0 0 20px rgba(255, 59, 59, 0.6);
+  }
+
+  .shop-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  #game-area {
+    position: relative;
+    width: 95vw;
+    height: 65vh;
+    max-width: 600px;
+    border: 3px solid #444;
+    background-color: #000;
+    border-radius: 15px;
+    overflow: hidden;
+    cursor: crosshair;
+    box-shadow: 0 0 20px rgba(255, 59, 59, 0.3);
+  }
+
+  .circle {
+    position: absolute;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+    z-index: 10; /* BOLINHAS ACIMA DAS MENSAGENS */
+    background: radial-gradient(circle, #ff3b3b, #aa0000) !important; /* VERMELHA FIXA */
+    box-shadow: 0 0 20px #ff3b3b !important; /* VERMELHA FIXA */
+  }
+  .circle:hover { transform: scale(1.1); }
+  .circle:active { transform: scale(0.95); }
+
+  /* C4 - Formato retangular com design realista e texto PRETO */
+  .c4-bomb {
+    position: absolute;
+    width: 70px;
+    height: 40px;
+    background: linear-gradient(45deg, #8B4513, #A0522D);
+    border-radius: 5px;
+    cursor: pointer;
+    box-shadow: 0 0 25px #ff4444;
+    border: 2px solid #ff4444;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: #000000;
+    font-size: 16px;
+    text-shadow: 0 0 2px #ffffff;
+    animation: c4Danger 0.2s infinite alternate;
+    z-index: 10; /* C4 ACIMA DAS MENSAGENS */
+  }
+  @keyframes c4Danger {
+    from { box-shadow: 0 0 20px #ff0000; transform: scale(1); }
+    to { box-shadow: 0 0 40px #ff6666; transform: scale(1.05); }
+  }
+
+  /* GRANADA - Formato de granada pingando */
+  .grenade {
+    position: absolute;
+    width: 45px;
+    height: 65px;
+    background: linear-gradient(45deg, #0044ff, #0088ff);
+    border-radius: 8px 8px 20px 20px;
+    cursor: pointer;
+    box-shadow: 0 0 20px #00aaff;
+    animation: bounceGrenade 0.6s infinite alternate;
+    z-index: 10; /* GRANADA ACIMA DAS MENSAGENS */
+  }
+  @keyframes bounceGrenade {
+    from { transform: translateY(0px); box-shadow: 0 0 15px #00aaff; }
+    to { transform: translateY(-8px); box-shadow: 0 0 30px #66ccff; }
+  }
+
+  /* FLASHBANG - Formato fino e alongado */
+  .flashbang {
+    position: absolute;
+    width: 35px;
+    height: 80px;
+    background: linear-gradient(45deg, #ffffff, #cccccc);
+    border-radius: 5px;
+    cursor: pointer;
+    box-shadow: 0 0 25px #ffffff;
+    animation: rotateFlashbang 3s infinite linear;
+    z-index: 10; /* FLASHBANG ACIMA DAS MENSAGENS */
+  }
+  @keyframes rotateFlashbang {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  /* MOLOTOV - Formato de garrafa */
+  .molotov {
+    position: absolute;
+    width: 30px;
+    height: 50px;
+    background: linear-gradient(45deg, #ff4400, #ff8800);
+    border-radius: 5px 5px 15px 15px;
+    cursor: pointer;
+    box-shadow: 0 0 20px #ff4400;
+    animation: molotovFlicker 0.3s infinite alternate;
+    z-index: 10; /* MOLOTOV ACIMA DAS MENSAGENS */
+  }
+  .molotov::before {
+    content: "";
+    position: absolute;
+    top: -10px;
+    left: 5px;
+    width: 20px;
+    height: 15px;
+    background: #ff4400;
+    border-radius: 10px 10px 0 0;
+    box-shadow: 0 0 15px #ff4400;
+  }
+  @keyframes molotovFlicker {
+    from { box-shadow: 0 0 15px #ff4400; }
+    to { box-shadow: 0 0 25px #ff8800; }
+  }
+
+  /* NOVOS ELEMENTOS ÉPICOS */
+  
+  /* 🔮 Orbe do Tempo */
+  .time-orb {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    background: radial-gradient(circle, #aa00ff, #6600cc);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 30px #aa00ff;
+    animation: orbPulse 2s infinite alternate;
+    z-index: 10; /* ORBE ACIMA DAS MENSAGENS */
+  }
+  @keyframes orbPulse {
+    from { transform: scale(1); box-shadow: 0 0 20px #aa00ff; }
+    to { transform: scale(1.2); box-shadow: 0 0 40px #cc66ff; }
+  }
+
+  /* 💎 Cristal Multiplicador */
+  .crystal {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    background: conic-gradient(#00ff88, #00ccff, #ff00cc, #00ff88);
+    border-radius: 10px;
+    cursor: pointer;
+    box-shadow: 0 0 25px #00ff88;
+    animation: crystalRotate 3s infinite linear;
+    transform-style: preserve-3d;
+    z-index: 10; /* CRISTAL ACIMA DAS MENSAGENS */
+  }
+  @keyframes crystalRotate {
+    from { transform: rotate(0deg) rotateX(20deg); }
+    to { transform: rotate(360deg) rotateX(20deg); }
+  }
+
+  /* 🌪️ Vortex Negro */
+  .vortex {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    background: radial-gradient(circle, #000000, #330066);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 40px #6600cc;
+    animation: vortexSpin 4s infinite linear;
+    z-index: 10; /* VORTEX ACIMA DAS MENSAGENS */
+  }
+  @keyframes vortexSpin {
+    from { transform: rotate(0deg) scale(1); }
+    to { transform: rotate(360deg) scale(1.1); }
+  }
+
+  /* 🎭 Mímico (Inimigo) */
+  .mimic {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    background: radial-gradient(circle, #ff3b3b, #aa0000);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 20px #ff3b3b;
+    animation: mimicBlink 1s infinite alternate;
+    z-index: 10; /* MÍMICO ACIMA DAS MENSAGENS */
+  }
+  .mimic::before, .mimic::after {
+    content: "●";
+    position: absolute;
+    top: 15px;
+    font-size: 12px;
+    color: #000;
+  }
+  .mimic::before { left: 15px; }
+  .mimic::after { right: 15px; }
+  @keyframes mimicBlink {
+    from { opacity: 1; }
+    to { opacity: 0.7; }
+  }
+
+  /* 👾 Mega C4 (Boss) */
+  .mega-c4 {
+    position: absolute;
+    width: 120px;
+    height: 70px;
+    background: linear-gradient(45deg, #8B4513, #A0522D);
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 0 40px #ff0000;
+    border: 3px solid #ff0000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: #000;
+    font-size: 20px;
+    text-shadow: 0 0 3px #fff;
+    animation: megaC4Pulse 0.5s infinite alternate;
+    z-index: 10; /* MEGA C4 ACIMA DAS MENSAGENS */
+  }
+  @keyframes megaC4Pulse {
+    from { transform: scale(1); box-shadow: 0 0 30px #ff0000; }
+    to { transform: scale(1.1); box-shadow: 0 0 50px #ff6666; }
+  }
+
+  /* Efeitos visuais */
+  .flash-effect {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 170, 255, 0.5);
+    animation: flash 0.3s ease-out;
+    pointer-events: none;
+    z-index: 999;
+  }
+  @keyframes flash {
+    from { opacity: 1; }
+    to { opacity: 0; }
+  }
+
+  .white-flash {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(255, 255, 255, 0.9);
+    animation: whiteFlash 0.5s ease-out;
+    pointer-events: none;
+    z-index: 999;
+  }
+  @keyframes whiteFlash {
+    0% { opacity: 1; }
+    70% { opacity: 0.8; }
+    100% { opacity: 0; }
+  }
+
+  .freeze-effect {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(100, 200, 255, 0.2);
+    pointer-events: none;
+    z-index: 998;
+  }
+
+  .fire-effect {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: linear-gradient(45deg, rgba(255,0,0,0.3), rgba(255,100,0,0.4));
+    pointer-events: none;
+    z-index: 997;
+    animation: fireAnimation 0.5s infinite alternate;
+  }
+  @keyframes fireAnimation {
+    from { opacity: 0.6; }
+    to { opacity: 0.9; }
+  }
+
+  .rainbow-effect {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: linear-gradient(45deg, 
+      rgba(255,0,0,0.2), 
+      rgba(255,165,0,0.2), 
+      rgba(255,255,0,0.2), 
+      rgba(0,255,0,0.2), 
+      rgba(0,0,255,0.2), 
+      rgba(75,0,130,0.2), 
+      rgba(238,130,238,0.2));
+    pointer-events: none;
+    z-index: 996;
+    animation: rainbowShift 2s infinite alternate;
+  }
+  @keyframes rainbowShift {
+    from { filter: hue-rotate(0deg); }
+    to { filter: hue-rotate(360deg); }
+  }
+
+  .slowmo-effect {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 255, 255, 0.1);
+    pointer-events: none;
+    z-index: 995;
+  }
+
+  .explosion-effect {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(255, 0, 0, 0.6);
+    animation: explosionFlash 0.5s ease-out;
+    pointer-events: none;
+    z-index: 999;
+  }
+  @keyframes explosionFlash {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.1); }
+    100% { opacity: 0; transform: scale(1.2); }
+  }
+
+  /* MENSAGENS REPOSICIONADAS PARA NÃO ATRAPALHAR O JOGO */
+  .warning-message {
+    position: absolute;
+    top: 20%; /* Alterado de 50% para 20% */
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 123, 0, 0.9);
+    color: white;
+    padding: 10px 20px; /* Reduzido */
+    border-radius: 10px;
+    font-size: 1rem; /* Reduzido */
+    font-weight: bold;
+    text-align: center;
+    animation: warningFlash 2s ease-in-out;
+    z-index: 5; /* MENSAGENS ABAIXO DOS ELEMENTOS CLICÁVEIS */
+    pointer-events: none; /* Garantir que não bloqueie cliques */
+  }
+
+  .bonus-message {
+    position: absolute;
+    top: 25%; /* Alterado de 50% para 25% */
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 255, 0, 0.9);
+    color: black;
+    padding: 10px 20px; /* Reduzido */
+    border-radius: 10px;
+    font-size: 1.1rem; /* Reduzido */
+    font-weight: bold;
+    text-align: center;
+    animation: bonusFlash 1.5s ease-in-out;
+    z-index: 5; /* MENSAGENS ABAIXO DOS ELEMENTOS CLICÁVEIS */
+    pointer-events: none; /* Garantir que não bloqueie cliques */
+  }
+
+  .penalty-message {
+    position: absolute;
+    top: 30%; /* Alterado de 50% para 30% */
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 0, 0, 0.9);
+    color: white;
+    padding: 10px 20px; /* Reduzido */
+    border-radius: 10px;
+    font-size: 1.1rem; /* Reduzido */
+    font-weight: bold;
+    text-align: center;
+    animation: penaltyFlash 1.5s ease-in-out;
+    z-index: 5; /* MENSAGENS ABAIXO DOS ELEMENTOS CLICÁVEIS */
+    pointer-events: none; /* Garantir que não bloqueie cliques */
+  }
+
+  .epic-message {
+    position: absolute;
+    top: 20%; /* Alterado de 50% para 20% */
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(45deg, #ff00ff, #00ffff);
+    color: black;
+    padding: 15px 25px; /* Reduzido */
+    border-radius: 15px;
+    font-size: 1.3rem; /* Reduzido */
+    font-weight: bold;
+    text-align: center;
+    animation: epicFlash 2s ease-in-out;
+    z-index: 5; /* MENSAGENS ABAIXO DOS ELEMENTOS CLICÁVEIS */
+    pointer-events: none; /* Garantir que não bloqueie cliques */
+  }
+  @keyframes epicFlash {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5) rotate(-10deg); }
+    50% { opacity: 1; transform: translate(-50%, -50%) scale(1.1) rotate(5deg); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+  }
+
+  @keyframes warningFlash {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+    50% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+  }
+
+  @keyframes bonusFlash {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+    50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+  }
+
+  @keyframes penaltyFlash {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+    50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+  }
+
+  .level-indicator {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(255, 59, 59, 0.2);
+    padding: 5px 10px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    border: 1px solid #ff3b3b;
+  }
+
+  .time-indicator {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(0, 170, 255, 0.2);
+    padding: 5px 10px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    border: 1px solid #00aaff;
+  }
+
+  .multiplier-indicator {
+    position: absolute;
+    top: 40px;
+    right: 10px;
+    background: rgba(0, 255, 0, 0.2);
+    padding: 5px 10px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    border: 1px solid #00ff00;
+  }
+
+  .coins-indicator {
+    position: absolute;
+    top: 40px;
+    left: 10px;
+    background: rgba(255, 215, 0, 0.2);
+    padding: 5px 10px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    border: 1px solid #ffd700;
+  }
+
+  .powerups-indicator {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    background: rgba(170, 0, 255, 0.2);
+    padding: 5px 10px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    border: 1px solid #aa00ff;
+  }
+
+  .freeze-timer {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 3rem;
+    color: #00aaff;
+    text-shadow: 0 0 10px #00aaff;
+    font-weight: bold;
+    z-index: 1000;
+    pointer-events: none; /* Garantir que não bloqueie cliques */
+  }
+
+  .fire-warning {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2rem;
+    color: #ff4400;
+    text-shadow: 0 0 10px #ff4400;
+    font-weight: bold;
+    z-index: 1000;
+    text-align: center;
+    pointer-events: none; /* Garantir que não bloqueie cliques */
+  }
+
+  .shop-section {
+    margin: 20px 0;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    width: 90%;
+    max-width: 400px;
+  }
+
+  .stats-section {
+    margin: 15px 0;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    width: 90%;
+    max-width: 400px;
+  }
+
+  .achievement-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(45deg, #ffd700, #ffed4e);
+    color: #000;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 0 30px #ffd700;
+    z-index: 10000;
+    text-align: center;
+    animation: achievementPop 3s ease-in-out;
+    pointer-events: none; /* Garantir que não bloqueie cliques */
+  }
+  @keyframes achievementPop {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+    20% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+    80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+  }
+
+  /* Estilos compactos para seções */
+  .stats-section, .shop-section {
+    margin: 10px 0;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    width: 90%;
+    max-width: 350px;
+    font-size: 0.9rem;
+  }
+
+  .stats-section div, .shop-section div {
+    margin: 5px 0;
+  }
+
+  /* Container para botões de ação */
+  .action-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+</style>
+</head>
+<body>
+
+<div id="menu-screen" class="screen">
+  <h1>🔥 Reflex Trainer CS Edition - ÉPICO! 💣</h1>
+  
+  <h2>Selecione o Tempo</h2>
+  <div class="time-options">
+    <button class="time-btn" data-time="30">⏱️ 30 Segundos</button>
+    <button class="time-btn" data-time="60">⏱️ 1 Minuto</button>
+    <button class="time-btn" data-time="0">🎪 Sobrevivência</button>
+  </div>
+
+  <h2>Escolha a Dificuldade</h2>
+  <div class="difficulty-options">
+    <button class="diff-btn" data-diff="easy">🟢 Fácil</button>
+    <button class="diff-btn" data-diff="medium">🟡 Médio</button>
+    <button class="diff-btn" data-diff="hard">🔴 Difícil</button>
+  </div>
+
+  <h2>Modo de Jogo</h2>
+  <div class="game-mode-options">
+    <button class="mode-btn" data-mode="classic">🎯 Clássico</button>
+    <button class="mode-btn" data-mode="precision">🎯 Precisão</button>
+    <button class="mode-btn" data-mode="bomberman">💣 Bomberman</button>
+  </div>
+
+  <div class="stats-section">
+    <div>🪙 Moedas: <span id="total-coins">0</span></div>
+    <div>🏆 Recorde: <span id="high-score">0</span></div>
+    <div>🎮 Conquistas: <span id="achievements-count">0</span>/12</div>
+  </div>
+
+  <div class="action-buttons">
+    <button id="start-game-btn" style="display:none;">🎮 Iniciar Jogo</button>
+    <button id="shop-btn">🛒 Loja</button>
+  </div>
+</div>
+
+<div id="shop-screen" class="screen">
+  <h1>🛒 Loja de Power-ups</h1>
+  
+  <div class="shop-section">
+    <h3>⚡ Power-ups Disponíveis</h3>
+    <div>⏱️ +5s Iniciais: <span id="time-plus-count">0</span></div>
+    <div>🐢 Início Lento: <span id="slow-start-count">0</span></div>
+    <div>🧲 Aura Magnética: <span id="magnet-count">0</span></div>
+  </div>
+
+  <div class="shop-section">
+    <h3>🛒 Comprar Power-ups</h3>
+    <button class="shop-btn" data-powerup="time_plus" data-cost="50">
+      ⏱️ +5s Iniciais (50 moedas)
+    </button>
+    <button class="shop-btn" data-powerup="slow_start" data-cost="75">
+      🐢 Início Lento (75 moedas)
+    </button>
+    <button class="shop-btn" data-powerup="magnet" data-cost="100">
+      🧲 Aura Magnética (100 moedas)
+    </button>
+  </div>
+
+  <div style="margin: 15px 0; font-size: 1rem;">
+    🪙 Suas Moedas: <span id="shop-coins">0</span>
+  </div>
+
+  <button id="back-to-menu-btn">🏠 Voltar ao Menu</button>
+</div>
+
+<div id="game-screen" class="screen">
+  <h1>🔥 Reflex Trainer CS Edition - ÉPICO! 💣</h1>
+  <div id="game-area">
+    <div class="level-indicator">Pontos: 0</div>
+    <div class="time-indicator">C4: +0s</div>
+    <div class="multiplier-indicator">Multiplicador: 1x</div>
+    <div class="coins-indicator">🪙: 0</div>
+    <div class="powerups-indicator">Power-ups Ativos: <span id="active-powerups">Nenhum</span></div>
+  </div>
+  <div id="scoreboard">Pontos: 0 | Tempo: 30s | Modo: Clássico</div>
+  <div>
+    <button id="pause-btn">⏸️ Pausar</button>
+    <button id="menu-btn">🏠 Menu</button>
+  </div>
+</div>
+
+<script>
+// ===== VARIÁVEIS GLOBAIS =====
+const menuScreen = document.getElementById('menu-screen');
+const gameScreen = document.getElementById('game-screen');
+const shopScreen = document.getElementById('shop-screen');
+const gameArea = document.getElementById('game-area');
+const scoreboard = document.getElementById('scoreboard');
+const timeButtons = document.querySelectorAll('.time-btn');
+const diffButtons = document.querySelectorAll('.diff-btn');
+const modeButtons = document.querySelectorAll('.mode-btn');
+const shopButtons = document.querySelectorAll('.shop-btn');
+const startGameBtn = document.getElementById('start-game-btn');
+const shopBtn = document.getElementById('shop-btn');
+const backToMenuBtn = document.getElementById('back-to-menu-btn');
+const pauseBtn = document.getElementById('pause-btn');
+const menuBtn = document.getElementById('menu-btn');
+
+// Estado do jogo
+let score = 0, timeLeft = 30, selectedTime = 30, difficulty = "medium", gameMode = "classic";
+let gameActive = false, gamePaused = false, movementEnabled = false, frenzyMode = false;
+let circles = [], gameInterval, timerInterval, movementInterval;
+let grenadeInterval, c4Interval, flashbangInterval, molotovInterval;
+let timeOrbInterval, crystalInterval, vortexInterval, mimicInterval, bossInterval;
+let circleSize = 60, speedMultiplier = 1;
+let totalBonusTime = 0;
+let freezeActive = false, fireActive = false, slowmoActive = false, rainbowActive = false;
+let pointMultiplier = 1, coins = 0, totalCoins = 0, highScore = 0;
+let achievements = new Set();
+let originalCircleClickHandlers = new Map();
+
+// NOVA VARIÁVEL: Contador de aumento de velocidade
+let speedIncreaseCount = 0;
+
+// Estatísticas
+let gamesPlayed = 0, totalPoints = 0, c4Disarmed = 0, grenadesUsed = 0;
+let timeOrbsUsed = 0, crystalsUsed = 0, mimicsKilled = 0;
+
+// Power-ups da loja (AGORA SÃO CONSUMÍVEIS)
+let shopItems = {
+  time_plus: { count: 0 },
+  slow_start: { count: 0 },
+  magnet: { count: 0 }
+};
+
+// Power-ups ativos no jogo atual
+let activePowerups = {
+  time_plus: false,
+  slow_start: false,
+  magnet: false
+};
+
+// Conquistas
+const achievementList = {
+  first_blood: { name: "🩸 Primeiro Sangue", desc: "Faça seu primeiro ponto" },
+  speed_demon: { name: "⚡ Demônio da Velocidade", desc: "50 pontos em 30 segundos" },
+  bomb_squad: { name: "💣 Esquadrão Anti-Bombas", desc: "Desative 5 C4s" },
+  fire_proof: { name: "🔥 À Prova de Fogo", desc: "Sobreviva a 3 Molotovs" },
+  reflex_master: { name: "🎯 Mestre dos Reflexos", desc: "200 pontos" },
+  rich: { name: "💰 Rico", desc: "Ganhe 100 moedas" },
+  collector: { name: "🔄 Colecionador", desc: "Use todos os power-ups" },
+  survivor: { name: "🏆 Sobrevivente", desc: "Complete modo sobrevivência" },
+  precise: { name: "🎯 Preciso", desc: "Modo precisão sem erros" },
+  bomber: { name: "💣 Bomberman", desc: "Modo bomberman perfeito" },
+  orb_master: { name: "🔮 Mestre do Tempo", desc: "Use 10 orbes do tempo" },
+  crystal_king: { name: "💎 Rei dos Cristais", desc: "Use 5 cristais multiplicadores" }
+};
+
+// ===== INICIALIZAÇÃO =====
+loadGameData();
+
+timeButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    timeButtons.forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedTime = parseInt(btn.dataset.time);
+    checkReady();
+  });
+});
+
+diffButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    diffButtons.forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    difficulty = btn.dataset.diff;
+    checkReady();
+  });
+});
+
+modeButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    modeButtons.forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    gameMode = btn.dataset.mode;
+    checkReady();
+  });
+});
+
+shopButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const powerup = btn.dataset.powerup;
+    const cost = parseInt(btn.dataset.cost);
+    buyPowerUp(powerup, cost, btn);
+  });
+});
+
+startGameBtn.addEventListener('click', startGame);
+shopBtn.addEventListener('click', () => { 
+  menuScreen.style.display = 'none'; 
+  shopScreen.style.display = 'flex'; 
+  updateShopDisplay(); 
+});
+backToMenuBtn.addEventListener('click', () => { 
+  shopScreen.style.display = 'none'; 
+  menuScreen.style.display = 'flex'; 
+});
+menuBtn.addEventListener('click', () => { resetGame(); menuScreen.style.display = 'flex'; gameScreen.style.display = 'none'; });
+pauseBtn.addEventListener('click', togglePause);
+
+function checkReady() {
+  if (document.querySelector('.time-btn.selected') && 
+      document.querySelector('.diff-btn.selected') && 
+      document.querySelector('.mode-btn.selected')) {
+    startGameBtn.style.display = 'block';
+  }
+}
+
+// ===== SISTEMA DE ARMAZENAMENTO =====
+function saveGameData() {
+  const data = {
+    totalCoins, highScore, achievements: [...achievements],
+    gamesPlayed, totalPoints, c4Disarmed, grenadesUsed,
+    timeOrbsUsed, crystalsUsed, mimicsKilled,
+    shopItems
+  };
+  localStorage.setItem('reflexTrainerSave', JSON.stringify(data));
+}
+
+function loadGameData() {
+  const saved = localStorage.getItem('reflexTrainerSave');
+  if (saved) {
+    const data = JSON.parse(saved);
+    totalCoins = data.totalCoins || 0;
+    highScore = data.highScore || 0;
+    achievements = new Set(data.achievements || []);
+    gamesPlayed = data.gamesPlayed || 0;
+    totalPoints = data.totalPoints || 0;
+    c4Disarmed = data.c4Disarmed || 0;
+    grenadesUsed = data.grenadesUsed || 0;
+    timeOrbsUsed = data.timeOrbsUsed || 0;
+    crystalsUsed = data.crystalsUsed || 0;
+    mimicsKilled = data.mimicsKilled || 0;
+    shopItems = data.shopItems || shopItems;
+  }
+  updateStatsDisplay();
+}
+
+function updateStatsDisplay() {
+  document.getElementById('total-coins').textContent = totalCoins;
+  document.getElementById('high-score').textContent = highScore;
+  document.getElementById('achievements-count').textContent = achievements.size;
+}
+
+function updateShopDisplay() {
+  document.getElementById('time-plus-count').textContent = shopItems.time_plus.count;
+  document.getElementById('slow-start-count').textContent = shopItems.slow_start.count;
+  document.getElementById('magnet-count').textContent = shopItems.magnet.count;
+  document.getElementById('shop-coins').textContent = totalCoins;
+}
+
+// ===== SISTEMA DE LOJA =====
+function buyPowerUp(powerup, cost, button) {
+  if (totalCoins >= cost) {
+    // AUMENTAR CONTADOR DO POWER-UP (AGORA É ACUMULATIVO)
+    shopItems[powerup].count++;
+    
+    totalCoins -= cost;
+    updateStatsDisplay();
+    updateShopDisplay();
+    saveGameData();
+    
+    // Efeito visual de compra
+    button.style.background = 'linear-gradient(45deg, #00ff00, #00cc00)';
+    setTimeout(() => {
+      button.style.background = '';
+    }, 500);
+    
+    showMessage(`✅ Power-up comprado! Restantes: ${shopItems[powerup].count}`, 'bonus');
+  } else {
+    showMessage('❌ Moedas insuficientes!', 'penalty');
+    button.style.background = 'linear-gradient(45deg, #ff0000, #cc0000)';
+    setTimeout(() => {
+      button.style.background = '';
+    }, 500);
+  }
+}
+
+// ===== INICIALIZAÇÃO DO JOGO =====
+function startGame() {
+  menuScreen.style.display = 'none';
+  gameScreen.style.display = 'flex';
+  resetGame();
+  
+  // APLICAR POWER-UPS COMPRADOS (AGORA ACUMULATIVOS)
+  applyPurchasedPowerups();
+  
+  // Iniciar jogo
+  gameActive = true;
+  updateScoreboard();
+  
+  // Configurar temporizador
+  if (selectedTime > 0) {
+    timeLeft = selectedTime;
+    timerInterval = setInterval(updateTimer, 1000);
+  } else {
+    timeLeft = 999; // Modo sobrevivência
+    timerInterval = setInterval(updateTimer, 1000);
+  }
+  
+  // Iniciar spawn de elementos baseado no modo
+  switch(gameMode) {
+    case 'classic':
+      startClassicMode();
+      break;
+    case 'precision':
+      startPrecisionMode();
+      break;
+    case 'bomberman':
+      startBombermanMode();
+      break;
+  }
+  
+  // Iniciar movimento dos elementos
+  movementInterval = setInterval(moveElements, 50);
+  
+  // Atualizar indicadores
+  updateIndicators();
+}
+
+function applyPurchasedPowerups() {
+  // APLICAR POWER-UPS COMPRADOS (AGORA ACUMULATIVOS)
+  if (shopItems.time_plus.count > 0) {
+    // CONSUMIR UM POWER-UP E APLICAR SEU EFEITO
+    shopItems.time_plus.count--;
+    timeLeft += 5; // ADICIONAR TEMPO EXTRA
+    totalBonusTime += 5; // ACUMULAR TEMPO BÔNUS
+    showMessage('⏱️ +5 segundos adicionados!', 'bonus');
+    updateShopDisplay();
+  }
+  
+  if (shopItems.slow_start.count > 0) {
+    shopItems.slow_start.count--;
+    activePowerups.slow_start = true;
+    speedMultiplier = 0.5; // REDUZIR VELOCIDADE INICIAL
+    showMessage('🐢 Início lento ativado!', 'bonus');
+    updateShopDisplay();
+    setTimeout(() => {
+      activePowerups.slow_start = false;
+      speedMultiplier = 1;
+    }, 10000); // 10 segundos de início lento
+  }
+  
+  if (shopItems.magnet.count > 0) {
+    shopItems.magnet.count--;
+    activePowerups.magnet = true;
+    showMessage('🧲 Aura magnética ativada!', 'bonus');
+    updateShopDisplay();
+    // A aura magnética atrai bolinhas por 15 segundos
+    setTimeout(() => {
+      activePowerups.magnet = false;
+    }, 15000);
+  }
+  
+  saveGameData();
+}
+
+function updateIndicators() {
+  const powerupsText = [];
+  if (activePowerups.time_plus) powerupsText.push('+5s');
+  if (activePowerups.slow_start) powerupsText.push('Lento');
+  if (activePowerups.magnet) powerupsText.push('Ímã');
+  
+  document.getElementById('active-powerups').textContent = 
+    powerupsText.length > 0 ? powerupsText.join(', ') : 'Nenhum';
+}
+
+function resetGame() {
+  // Limpar estado do jogo
+  score = 0;
+  timeLeft = selectedTime;
+  gameActive = false;
+  gamePaused = false;
+  movementEnabled = false;
+  frenzyMode = false;
+  pointMultiplier = 1;
+  coins = 0;
+  speedMultiplier = 1;
+  totalBonusTime = 0;
+  
+  // NOVA VARIÁVEL: Resetar contador de aumento de velocidade
+  speedIncreaseCount = 0;
+  
+  // Limpar power-ups ativos
+  activePowerups = {
+    time_plus: false,
+    slow_start: false,
+    magnet: false
+  };
+  
+  // Limpar intervalos
+  clearInterval(gameInterval);
+  clearInterval(timerInterval);
+  clearInterval(movementInterval);
+  clearInterval(grenadeInterval);
+  clearInterval(c4Interval);
+  clearInterval(flashbangInterval);
+  clearInterval(molotovInterval);
+  clearInterval(timeOrbInterval);
+  clearInterval(crystalInterval);
+  clearInterval(vortexInterval);
+  clearInterval(mimicInterval);
+  clearInterval(bossInterval);
+  
+  // Limpar elementos do jogo
+  gameArea.innerHTML = `
+    <div class="level-indicator">Pontos: 0</div>
+    <div class="time-indicator">C4: +0s</div>
+    <div class="multiplier-indicator">Multiplicador: 1x</div>
+    <div class="coins-indicator">🪙: 0</div>
+    <div class="powerups-indicator">Power-ups Ativos: <span id="active-powerups">Nenhum</span></div>
+  `;
+  circles = [];
+  
+  // Remover efeitos visuais
+  document.querySelectorAll('.flash-effect, .white-flash, .freeze-effect, .fire-effect, .rainbow-effect, .slowmo-effect, .explosion-effect').forEach(el => el.remove());
+  document.querySelectorAll('.freeze-timer, .fire-warning').forEach(el => el.remove());
+}
+
+function updateScoreboard() {
+  let modeText = '';
+  switch(gameMode) {
+    case 'classic': modeText = 'Clássico'; break;
+    case 'precision': modeText = 'Precisão'; break;
+    case 'bomberman': modeText = 'Bomberman'; break;
+  }
+  
+  let timeText = selectedTime === 0 ? '∞' : `${timeLeft}s`;
+  
+  // CORREÇÃO: PONTUAÇÃO SEM CASAS DECIMAIS
+  const scoreInt = Math.floor(score);
+  const multiplierInt = Math.floor(pointMultiplier * 10) / 10; // Uma casa decimal apenas
+  
+  scoreboard.textContent = `Pontos: ${scoreInt} | Tempo: ${timeText} | Modo: ${modeText} | Multiplicador: ${multiplierInt}x`;
+}
+
+function updateTimer() {
+  if (gamePaused || !gameActive) return;
+  
+  if (selectedTime > 0) {
+    timeLeft--;
+    if (timeLeft <= 0) {
+      endGame();
+    }
+  } else {
+    timeLeft--; // Modo sobrevivência
+  }
+  
+  updateScoreboard();
+}
+
+function endGame() {
+  gameActive = false;
+  clearInterval(timerInterval);
+  clearInterval(movementInterval);
+  
+  // Limpar todos os intervalos de spawn
+  clearInterval(gameInterval);
+  clearInterval(grenadeInterval);
+  clearInterval(c4Interval);
+  clearInterval(flashbangInterval);
+  clearInterval(molotovInterval);
+  clearInterval(timeOrbInterval);
+  clearInterval(crystalInterval);
+  clearInterval(vortexInterval);
+  clearInterval(mimicInterval);
+  clearInterval(bossInterval);
+  
+  // Atualizar estatísticas
+  gamesPlayed++;
+  totalPoints += score;
+  if (score > highScore) {
+    highScore = score;
+    showMessage('🏆 NOVO RECORDE!', 'epic');
+  }
+  
+  // Adicionar moedas ao total
+  totalCoins += coins;
+  
+  // Conquistas
+  checkAchievements();
+  
+  // Salvar dados
+  saveGameData();
+  updateStatsDisplay();
+  
+  // Mostrar resumo
+  setTimeout(() => {
+    alert(`Fim de Jogo!\nPontuação: ${Math.floor(score)}\nMoedas Ganhas: ${coins}\nRecorde: ${highScore}`);
+    resetGame();
+    menuScreen.style.display = 'flex';
+    gameScreen.style.display = 'none';
+  }, 1000);
+}
+
+function togglePause() {
+  if (!gameActive) return;
+  
+  gamePaused = !gamePaused;
+  pauseBtn.textContent = gamePaused ? '▶️ Continuar' : '⏸️ Pausar';
+  
+  if (gamePaused) {
+    document.querySelectorAll('.circle, .c4-bomb, .grenade, .flashbang, .molotov, .time-orb, .crystal, .vortex, .mimic, .mega-c4').forEach(el => {
+      el.style.animationPlayState = 'paused';
+    });
+  } else {
+    document.querySelectorAll('.circle, .c4-bomb, .grenade, .flashbang, .molotov, .time-orb, .crystal, .vortex, .mimic, .mega-c4').forEach(el => {
+      el.style.animationPlayState = 'running';
+    });
+  }
+}
+
+// ===== MODOS DE JOGO =====
+function startClassicMode() {
+  movementEnabled = true;
+  
+  // Spawn regular de bolinhas
+  gameInterval = setInterval(() => {
+    if (gamePaused || !gameActive) return;
+    spawnCircle();
+    
+    // Chance de spawnar elementos especiais
+    if (Math.random() < 0.1) spawnC4();
+    if (Math.random() < 0.08) spawnGrenade();
+    if (Math.random() < 0.06) spawnFlashbang();
+    if (Math.random() < 0.05) spawnMolotov();
+    if (Math.random() < 0.04) spawnTimeOrb();
+    if (Math.random() < 0.03) spawnCrystal();
+    if (Math.random() < 0.02) spawnVortex();
+    if (Math.random() < 0.015) spawnMimic();
+    if (score > 100 && Math.random() < 0.005) spawnBoss();
+    
+    // Ativar frenesi em altas pontuações
+    if (score > 50 && !frenzyMode) {
+      frenzyMode = true;
+      showMessage('🌀 MODO FRENESI ATIVADO!', 'epic');
+    }
+    
+    // AUMENTAR VELOCIDADE A CADA 20 BOLINHAS
+    if (circles.length % 20 === 0 && circles.length > 0) {
+      speedMultiplier *= 1.3; // AUMENTO DE 30%
+      speedIncreaseCount++;
+      showMessage(`⚡ Velocidade aumentada! Nível ${speedIncreaseCount}`, 'bonus');
+    }
+    
+  }, 1000 - Math.min(score, 500)); // Aumenta frequência com a pontuação
+}
+
+function startPrecisionMode() {
+  movementEnabled = false;
+  
+  // Bolinhas menores e mais rápidas
+  circleSize = 40;
+  
+  gameInterval = setInterval(() => {
+    if (gamePaused || !gameActive) return;
+    spawnCircle();
+    
+    // Penalidade por errar
+    const circle = circles[circles.length - 1];
+    setTimeout(() => {
+      if (circle.parentElement) {
+        circle.remove();
+        circles = circles.filter(c => c !== circle);
+        if (gameActive) {
+          score = Math.max(0, score - 5);
+          pointMultiplier = 1;
+          showMessage('❌ Errou! -5 pontos', 'penalty');
+          updateScoreboard();
+        }
+      }
+    }, 1500);
+    
+  }, 800 - Math.min(score * 5, 600));
+}
+
+function startBombermanMode() {
+  movementEnabled = true;
+  
+  // Mais C4s e granadas
+  c4Interval = setInterval(() => {
+    if (gamePaused || !gameActive) return;
+    if (Math.random() < 0.3) spawnC4();
+  }, 2000);
+  
+  grenadeInterval = setInterval(() => {
+    if (gamePaused || !gameActive) return;
+    if (Math.random() < 0.2) spawnGrenade();
+  }, 3000);
+  
+  // Bolinhas normais também
+  gameInterval = setInterval(() => {
+    if (gamePaused || !gameActive) return;
+    spawnCircle();
+  }, 1200);
+}
+
+// ===== SPAWN DE ELEMENTOS =====
+function spawnCircle() {
+  if (!gameActive || gamePaused) return;
+  
+  const circle = document.createElement('div');
+  circle.className = 'circle';
+  
+  // Tamanho baseado na dificuldade
+  let size = circleSize;
+  if (difficulty === 'easy') size *= 1.2;
+  if (difficulty === 'hard') size *= 0.8;
+  
+  circle.style.width = `${size}px`;
+  circle.style.height = `${size}px`;
+  
+  // CORREÇÃO: TODAS AS BOLINHAS SÃO VERMELHAS (FIXO NO CSS)
+  // Não precisa definir cor aqui, já está fixa no CSS
+  
+  // Posição aleatória
+  const maxX = gameArea.offsetWidth - size;
+  const maxY = gameArea.offsetHeight - size;
+  circle.style.left = `${Math.random() * maxX}px`;
+  circle.style.top = `${Math.random() * maxY}px`;
+  
+  // Velocidade inicial
+  const baseSpeed = difficulty === 'easy' ? 1 : difficulty === 'hard' ? 3 : 2;
+  circle.speedX = (Math.random() - 0.5) * baseSpeed * speedMultiplier;
+  circle.speedY = (Math.random() - 0.5) * baseSpeed * speedMultiplier;
+  
+  // Configurar clique - salvar handler original
+  const clickHandler = () => handleCircleClick(circle);
+  originalCircleClickHandlers.set(circle, clickHandler);
+  circle.addEventListener('click', clickHandler);
+  
+  gameArea.appendChild(circle);
+  circles.push(circle);
+  
+  // Remover após algum tempo
+  setTimeout(() => {
+    if (circle.parentElement) {
+      circle.remove();
+      circles = circles.filter(c => c !== circle);
+    }
+  }, 5000);
+}
+
+function spawnC4() {
+  if (!gameActive || gamePaused) return;
+  
+  const c4 = document.createElement('div');
+  c4.className = 'c4-bomb';
+  c4.textContent = 'C4';
+  
+  const size = 70;
+  const maxX = gameArea.offsetWidth - size;
+  const maxY = gameArea.offsetHeight - size;
+  c4.style.left = `${Math.random() * maxX}px`;
+  c4.style.top = `${Math.random() * maxY}px`;
+  
+  // Velocidade
+  const baseSpeed = difficulty === 'easy' ? 0.5 : difficulty === 'hard' ? 1.5 : 1;
+  c4.speedX = (Math.random() - 0.5) * baseSpeed * speedMultiplier;
+  c4.speedY = (Math.random() - 0.5) * baseSpeed * speedMultiplier;
+  
+  c4.addEventListener('click', () => handleC4Click(c4));
+  
+  gameArea.appendChild(c4);
+  circles.push(c4);
+  
+  // Explodir após 7 segundos
+  setTimeout(() => {
+    if (c4.parentElement) {
+      handleC4Explosion(c4);
+    }
+  }, 7000);
+}
+
+function spawnGrenade() {
+  if (!gameActive || gamePaused) return;
+  
+  const grenade = document.createElement('div');
+  grenade.className = 'grenade';
+  
+  const size = 45;
+  const maxX = gameArea.offsetWidth - size;
+  const maxY = gameArea.offsetHeight - size;
+  grenade.style.left = `${Math.random() * maxX}px`;
+  grenade.style.top = `${Math.random() * maxY}px`;
+  
+  // Velocidade
+  const baseSpeed = difficulty === 'easy' ? 0.8 : difficulty === 'hard' ? 2 : 1.2;
+  grenade.speedX = (Math.random() - 0.5) * baseSpeed * speedMultiplier;
+  grenade.speedY = (Math.random() - 0.5) * baseSpeed * speedMultiplier;
+  
+  grenade.addEventListener('click', () => handleGrenadeClick(grenade));
+  
+  gameArea.appendChild(grenade);
+  circles.push(grenade);
+  
+  setTimeout(() => {
+    if (grenade.parentElement) {
+      grenade.remove();
+      circles = circles.filter(c => c !== grenade);
+    }
+  }, 6000);
+}
+
+function spawnFlashbang() {
+  if (!gameActive || gamePaused) return;
+  
+  const flashbang = document.createElement('div');
+  flashbang.className = 'flashbang';
+  
+  const size = 35;
+  const maxX = gameArea.offsetWidth - size;
+  const maxY = gameArea.offsetHeight - size;
+  flashbang.style.left = `${Math.random() * maxX}px`;
+  flashbang.style.top = `${Math.random() * maxY}px`;
+  
+  // Velocidade
+  const baseSpeed = difficulty === 'easy' ? 1 : difficulty === 'hard' ? 2.5 : 1.5;
+  flashbang.speedX = (Math.random() - 0.5) * baseSpeed * speedMultiplier;
+  flashbang.speedY = (Math.random() - 0.5) * baseSpeed * speedMultiplier;
+  
+  flashbang.addEventListener('click', () => handleFlashbangClick(flashbang));
+  
+  gameArea.appendChild(flashbang);
+  circles.push(flashbang);
+  
+  setTimeout(() => {
+    if (flashbang.parentElement) {
+      flashbang.remove();
+      circles = circles.filter(c => c !== flashbang);
+    }
+  }, 4000);
+}
+
+function spawnMolotov() {
+  if (!gameActive || gamePaused) return;
+  
+  const molotov = document.createElement('div');
+  molotov.className = 'molotov';
+  
+  const size = 30;
+  const maxX = gameArea.offsetWidth - size;
+  const maxY = gameArea.offsetHeight - size;
+  molotov.style.left = `${Math.random() * maxX}px`;
+  molotov.style.top = `${Math.random() * maxY}px`;
+  
+  // Velocidade
+  const baseSpeed = difficulty === 'easy' ? 0.7 : difficulty === 'hard' ? 1.8 : 1.1;
+  molotov.speedX = (Math.random() - 0.5) * baseSpeed * speedMultiplier;
+  molotov.speedY = (Math.random() - 0.5) * baseSpeed * speedMultiplier;
+  
+  molotov.addEventListener('click', () => handleMolotovClick(molotov));
+  
+  gameArea.appendChild(molotov);
+  circles.push(molotov);
+  
+  setTimeout(() => {
+    if (molotov.parentElement) {
+      handleMolotovExplosion(molotov);
+    }
+  }, 5000);
+}
+
+function spawnTimeOrb() {
+  if (!gameActive || gamePaused) return;
+  
+  const orb = document.createElement('div');
+  orb.className = 'time-orb';
+  
+  const size = 60;
+  const maxX = gameArea.offsetWidth - size;
+  const maxY = gameArea.offsetHeight - size;
+  orb.style.left = `${Math.random() * maxX}px`;
+  orb.style.top = `${Math.random() * maxY}px`;
+  
+  // Velocidade
+  const baseSpeed = 0.5;
+  orb.speedX = (Math.random() - 0.5) * baseSpeed * speedMultiplier;
+  orb.speedY = (Math.random() - 0.5) * baseSpeed * speedMultiplier;
+  
+  orb.addEventListener('click', () => handleTimeOrbClick(orb));
+  
+  gameArea.appendChild(orb);
+  circles.push(orb);
+  
+  setTimeout(() => {
+    if (orb.parentElement) {
+      orb.remove();
+      circles = circles.filter(c => c !== orb);
+    }
+  }, 8000);
+}
+
+function spawnCrystal() {
+  if (!gameActive || gamePaused) return;
+  
+  const crystal = document.createElement('div');
+  crystal.className = 'crystal';
+  
+  const size = 50;
+  const maxX = gameArea.offsetWidth - size;
+  const maxY = gameArea.offsetHeight - size;
+  crystal.style.left = `${Math.random() * maxX}px`;
+  crystal.style.top = `${Math.random() * maxY}px`;
+  
+  // Velocidade
+  const baseSpeed = 0.6;
+  crystal.speedX = (Math.random() - 0.5) * baseSpeed * speedMultiplier;
+  crystal.speedY = (Math.random() - 0.5) * baseSpeed * speedMultiplier;
+  
+  crystal.addEventListener('click', () => handleCrystalClick(crystal));
+  
+  gameArea.appendChild(crystal);
+  circles.push(crystal);
+  
+  setTimeout(() => {
+    if (crystal.parentElement) {
+      crystal.remove();
+      circles = circles.filter(c => c !== crystal);
+    }
+  }, 6000);
+}
+
+function spawnVortex() {
+  if (!gameActive || gamePaused) return;
+  
+  const vortex = document.createElement('div');
+  vortex.className = 'vortex';
+  
+  const size = 80;
+  const maxX = gameArea.offsetWidth - size;
+  const maxY = gameArea.offsetHeight - size;
+  vortex.style.left = `${Math.random() * maxX}px`;
+  vortex.style.top = `${Math.random() * maxY}px`;
+  
+  // Velocidade lenta
+  vortex.speedX = (Math.random() - 0.5) * 0.3 * speedMultiplier;
+  vortex.speedY = (Math.random() - 0.5) * 0.3 * speedMultiplier;
+  
+  vortex.addEventListener('click', () => handleVortexClick(vortex));
+  
+  gameArea.appendChild(vortex);
+  circles.push(vortex);
+  
+  setTimeout(() => {
+    if (vortex.parentElement) {
+      vortex.remove();
+      circles = circles.filter(c => c !== vortex);
+    }
+  }, 10000);
+}
+
+function spawnMimic() {
+  if (!gameActive || gamePaused) return;
+  
+  const mimic = document.createElement('div');
+  mimic.className = 'mimic';
+  
+  const size = 60;
+  const maxX = gameArea.offsetWidth - size;
+  const maxY = gameArea.offsetHeight - size;
+  mimic.style.left = `${Math.random() * maxX}px`;
+  mimic.style.top = `${Math.random() * maxY}px`;
+  
+  // Velocidade
+  const baseSpeed = difficulty === 'easy' ? 0.8 : difficulty === 'hard' ? 2.2 : 1.4;
+  mimic.speedX = (Math.random() - 0.5) * baseSpeed * speedMultiplier;
+  mimic.speedY = (Math.random() - 0.5) * baseSpeed * speedMultiplier;
+  
+  mimic.addEventListener('click', () => handleMimicClick(mimic));
+  
+  gameArea.appendChild(mimic);
+  circles.push(mimic);
+  
+  setTimeout(() => {
+    if (mimic.parentElement) {
+      mimic.remove();
+      circles = circles.filter(c => c !== mimic);
+    }
+  }, 5000);
+}
+
+function spawnBoss() {
+  if (!gameActive || gamePaused) return;
+  
+  const boss = document.createElement('div');
+  boss.className = 'mega-c4';
+  boss.textContent = 'MEGA C4';
+  
+  const size = 120;
+  const maxX = gameArea.offsetWidth - size;
+  const maxY = gameArea.offsetHeight - size;
+  boss.style.left = `${Math.random() * maxX}px`;
+  boss.style.top = `${Math.random() * maxY}px`;
+  
+  // Velocidade lenta mas perigosa
+  boss.speedX = (Math.random() - 0.5) * 0.8 * speedMultiplier;
+  boss.speedY = (Math.random() - 0.5) * 0.8 * speedMultiplier;
+  
+  boss.addEventListener('click', () => handleBossClick(boss));
+  
+  gameArea.appendChild(boss);
+  circles.push(boss);
+  
+  // Explodir após 15 segundos - DESTRUIÇÃO MÁXIMA
+  setTimeout(() => {
+    if (boss.parentElement) {
+      handleBossExplosion(boss);
+    }
+  }, 15000);
+}
+
+// ===== HANDLERS DE CLIQUE =====
+function handleCircleClick(circle) {
+  if (!gameActive || gamePaused) return;
+  
+  // Remover handler original para prevenir múltiplos cliques
+  const originalHandler = originalCircleClickHandlers.get(circle);
+  if (originalHandler) {
+    circle.removeEventListener('click', originalHandler);
+    originalCircleClickHandlers.delete(circle);
+  }
+  
+  // Efeito visual
+  circle.style.transform = 'scale(1.3)';
+  circle.style.opacity = '0.7';
+  
+  // Pontuação base
+  let points = 1;
+  
+  // Bônus de dificuldade
+  if (difficulty === 'hard') points = 3;
+  else if (difficulty === 'medium') points = 2;
+  
+  // Aplicar multiplicador
+  points *= pointMultiplier;
+  
+  // CORREÇÃO: PONTUAÇÃO SEM CASAS DECIMAIS
+  points = Math.floor(points);
+  
+  // Adicionar pontos
+  score += points;
+  
+  // Moedas
+  const coinsEarned = Math.ceil(points / 2);
+  coins += coinsEarned;
+  
+  // Atualizar multiplicador (combo)
+  pointMultiplier += 0.1;
+  
+  // Atualizar UI
+  updateScoreboard();
+  document.querySelector('.level-indicator').textContent = `Pontos: ${Math.floor(score)}`;
+  document.querySelector('.coins-indicator').textContent = `🪙: ${coins}`;
+  document.querySelector('.multiplier-indicator').textContent = `Multiplicador: ${(Math.floor(pointMultiplier * 10) / 10).toFixed(1)}x`;
+  
+  // Efeito de partículas
+  createParticles(circle, points, coinsEarned);
+  
+  // Remover elemento
+  setTimeout(() => {
+    if (circle.parentElement) {
+      circle.remove();
+      circles = circles.filter(c => c !== circle);
+    }
+  }, 200);
+  
+  // Conquista primeiro ponto
+  if (score === points) {
+    unlockAchievement('first_blood');
+  }
+}
+
+function handleC4Click(c4) {
+  if (!gameActive || gamePaused) return;
+  
+  // Estatísticas
+  c4Disarmed++;
+  
+  // Bônus de tempo
+  const timeBonus = 3;
+  timeLeft += timeBonus;
+  totalBonusTime += timeBonus;
+  
+  // Pontuação extra
+  score += 10 * pointMultiplier;
+  coins += 5;
+  
+  // CORREÇÃO: PONTUAÇÃO SEM CASAS DECIMAIS
+  score = Math.floor(score);
+  
+  // Atualizar UI
+  document.querySelector('.time-indicator').textContent = `C4: +${totalBonusTime}s`;
+  updateScoreboard();
+  
+  // Efeitos visuais
+  c4.style.background = 'linear-gradient(45deg, #00ff00, #00cc00)';
+  c4.style.boxShadow = '0 0 30px #00ff00';
+  c4.textContent = '✅';
+  
+  showMessage(`✅ C4 Desarmado! +${timeBonus}s`, 'bonus');
+  
+  // Remover após efeito
+  setTimeout(() => {
+    if (c4.parentElement) {
+      c4.remove();
+      circles = circles.filter(c => c !== c4);
+    }
+  }, 1000);
+  
+  // Conquista
+  if (c4Disarmed >= 5) {
+    unlockAchievement('bomb_squad');
+  }
+}
+
+function handleC4Explosion(c4) {
+  if (!gameActive) return;
+  
+  // Penalidade
+  score = Math.max(0, score - 20);
+  pointMultiplier = 1;
+  
+  // Efeito visual
+  const explosion = document.createElement('div');
+  explosion.className = 'explosion-effect';
+  gameArea.appendChild(explosion);
+  
+  showMessage('💣 C4 Explodiu! -20 pontos', 'penalty');
+  
+  // Remover elementos
+  setTimeout(() => {
+    explosion.remove();
+  }, 500);
+  
+  if (c4.parentElement) {
+    c4.remove();
+    circles = circles.filter(c => c !== c4);
+  }
+  
+  updateScoreboard();
+}
+
+function handleGrenadeClick(grenade) {
+  if (!gameActive || gamePaused) return;
+  
+  // Estatísticas
+  grenadesUsed++;
+  
+  // Congelar todos os elementos por 3 segundos
+  freezeActive = true;
+  
+  const freezeEffect = document.createElement('div');
+  freezeEffect.className = 'freeze-effect';
+  gameArea.appendChild(freezeEffect);
+  
+  const freezeTimer = document.createElement('div');
+  freezeTimer.className = 'freeze-timer';
+  freezeTimer.textContent = '❄️';
+  gameArea.appendChild(freezeTimer);
+  
+  showMessage('❄️ Granada Congelante!', 'bonus');
+  
+  // Pontuação
+  score += 15 * pointMultiplier;
+  coins += 8;
+  
+  // CORREÇÃO: PONTUAÇÃO SEM CASAS DECIMAIS
+  score = Math.floor(score);
+  
+  updateScoreboard();
+  
+  // Efeito visual na granada
+  grenade.style.background = 'linear-gradient(45deg, #00aaff, #0088cc)';
+  grenade.style.boxShadow = '0 0 30px #00aaff';
+  
+  // Remover após efeito
+  setTimeout(() => {
+    if (grenade.parentElement) {
+      grenade.remove();
+      circles = circles.filter(c => c !== grenade);
+    }
+    freezeEffect.remove();
+    freezeTimer.remove();
+    freezeActive = false;
+  }, 3000);
+}
+
+function handleFlashbangClick(flashbang) {
+  if (!gameActive || gamePaused) return;
+  
+  // Efeito de clarão
+  const whiteFlash = document.createElement('div');
+  whiteFlash.className = 'white-flash';
+  gameArea.appendChild(whiteFlash);
+  
+  // Congelar temporariamente o jogo
+  gamePaused = true;
+  
+  showMessage('💡 Flashbang!', 'warning');
+  
+  // Pontuação
+  score += 8 * pointMultiplier;
+  coins += 4;
+  
+  // CORREÇÃO: PONTUAÇÃO SEM CASAS DECIMAIS
+  score = Math.floor(score);
+  
+  updateScoreboard();
+  
+  // Efeito visual
+  flashbang.style.background = 'linear-gradient(45deg, #ffff00, #ffaa00)';
+  flashbang.style.boxShadow = '0 0 40px #ffff00';
+  
+  // Restaurar após 1 segundo
+  setTimeout(() => {
+    whiteFlash.remove();
+    gamePaused = false;
+    
+    if (flashbang.parentElement) {
+      flashbang.remove();
+      circles = circles.filter(c => c !== flashbang);
+    }
+  }, 1000);
+}
+
+function handleMolotovClick(molotov) {
+  if (!gameActive || gamePaused) return;
+  
+  // Ativar efeito de fogo
+  fireActive = true;
+  
+  const fireEffect = document.createElement('div');
+  fireEffect.className = 'fire-effect';
+  gameArea.appendChild(fireEffect);
+  
+  const fireWarning = document.createElement('div');
+  fireWarning.className = 'fire-warning';
+  fireWarning.textContent = '🔥 FOGO! 🔥';
+  gameArea.appendChild(fireWarning);
+  
+  showMessage('🔥 Molotov! Cuidado!', 'warning');
+  
+  // Pontuação arriscada
+  score += 20 * pointMultiplier;
+  coins += 10;
+  
+  // CORREÇÃO: PONTUAÇÃO SEM CASAS DECIMAIS
+  score = Math.floor(score);
+  
+  updateScoreboard();
+  
+  // Efeito visual
+  molotov.style.background = 'linear-gradient(45deg, #ff0000, #ff6600)';
+  molotov.style.boxShadow = '0 0 40px #ff0000';
+  
+  // CORREÇÃO: MOLOTOV REDUZ TEMPO E NÃO PONTOS
+  // Durante o efeito de fogo, cada clique em bolinha reduz o tempo
+  const originalFireHandler = (circle) => {
+    if (fireActive) {
+      timeLeft = Math.max(1, timeLeft - 2); // Reduz 2 segundos por clique
+      showMessage('🔥 -2 segundos!', 'penalty');
+      updateScoreboard();
+    }
+  };
+  
+  // Aplicar penalidade de tempo durante o fogo
+  const applyFirePenalty = () => {
+    if (fireActive) {
+      // Substituir handlers temporariamente
+      circles.forEach(circle => {
+        if (circle.classList.contains('circle')) {
+          const originalHandler = originalCircleClickHandlers.get(circle);
+          if (originalHandler) {
+            circle.removeEventListener('click', originalHandler);
+            const fireHandler = () => {
+              originalHandler();
+              originalFireHandler(circle);
+            };
+            circle.addEventListener('click', fireHandler);
+            // Restaurar handler original depois
+            setTimeout(() => {
+              if (circle.parentElement) {
+                circle.removeEventListener('click', fireHandler);
+                circle.addEventListener('click', originalHandler);
+              }
+            }, 4000);
+          }
+        }
+      });
+    }
+  };
+  
+  applyFirePenalty();
+  
+  // Remover após 4 segundos
+  setTimeout(() => {
+    fireEffect.remove();
+    fireWarning.remove();
+    fireActive = false;
+    
+    if (molotov.parentElement) {
+      molotov.remove();
+      circles = circles.filter(c => c !== molotov);
+    }
+  }, 4000);
+  
+  // Conquista
+  if (grenadesUsed >= 3) {
+    unlockAchievement('fire_proof');
+  }
+}
+
+function handleMolotovExplosion(molotov) {
+  if (!gameActive) return;
+  
+  // CORREÇÃO: MOLOTOV REDUZ TEMPO E NÃO PONTOS
+  timeLeft = Math.max(1, timeLeft - 10); // Reduz 10 segundos se não clicar a tempo
+  pointMultiplier = 1;
+  
+  // Pequeno efeito de fogo
+  const smallFire = document.createElement('div');
+  smallFire.className = 'fire-effect';
+  smallFire.style.opacity = '0.5';
+  gameArea.appendChild(smallFire);
+  
+  showMessage('🔥 Molotov Queimou! -10 segundos', 'penalty');
+  
+  setTimeout(() => {
+    smallFire.remove();
+  }, 2000);
+  
+  if (molotov.parentElement) {
+    molotov.remove();
+    circles = circles.filter(c => c !== molotov);
+  }
+  
+  updateScoreboard();
+}
+
+function handleTimeOrbClick(orb) {
+  if (!gameActive || gamePaused) return;
+  
+  // Estatísticas
+  timeOrbsUsed++;
+  
+  // Bônus de tempo significativo
+  const timeBonus = 10;
+  timeLeft += timeBonus;
+  totalBonusTime += timeBonus;
+  
+  // Efeito visual do orb
+  orb.style.background = 'radial-gradient(circle, #ff00ff, #cc00cc)';
+  orb.style.boxShadow = '0 0 50px #ff00ff';
+  
+  // Pontuação
+  score += 25 * pointMultiplier;
+  coins += 15;
+  
+  // CORREÇÃO: PONTUAÇÃO SEM CASAS DECIMAIS
+  score = Math.floor(score);
+  
+  // Atualizar UI
+  document.querySelector('.time-indicator').textContent = `C4: +${totalBonusTime}s`;
+  updateScoreboard();
+  
+  showMessage(`🔮 Orbe do Tempo! +${timeBonus}s`, 'bonus');
+  
+  // Efeito de slow motion
+  slowmoActive = true;
+  const slowmoEffect = document.createElement('div');
+  slowmoEffect.className = 'slowmo-effect';
+  gameArea.appendChild(slowmoEffect);
+  
+  // Remover após efeito
+  setTimeout(() => {
+    if (orb.parentElement) {
+      orb.remove();
+      circles = circles.filter(c => c !== orb);
+    }
+    slowmoEffect.remove();
+    slowmoActive = false;
+  }, 2000);
+  
+  // Conquista
+  if (timeOrbsUsed >= 10) {
+    unlockAchievement('orb_master');
+  }
+}
+
+function handleCrystalClick(crystal) {
+  if (!gameActive || gamePaused) return;
+  
+  // Estatísticas
+  crystalsUsed++;
+  
+  // Aumentar multiplicador significativamente
+  pointMultiplier += 1;
+  
+  // Efeito visual
+  crystal.style.background = 'conic-gradient(#ffff00, #ffaa00, #ffff00)';
+  crystal.style.boxShadow = '0 0 40px #ffff00';
+  
+  // Pontuação base
+  score += 30;
+  coins += 20;
+  
+  // CORREÇÃO: PONTUAÇÃO SEM CASAS DECIMAIS
+  score = Math.floor(score);
+  
+  // Efeito rainbow
+  rainbowActive = true;
+  const rainbowEffect = document.createElement('div');
+  rainbowEffect.className = 'rainbow-effect';
+  gameArea.appendChild(rainbowEffect);
+  
+  showMessage(`💎 Cristal Multiplicador! Agora: ${pointMultiplier.toFixed(1)}x`, 'epic');
+  updateScoreboard();
+  
+  // Remover após efeito
+  setTimeout(() => {
+    if (crystal.parentElement) {
+      crystal.remove();
+      circles = circles.filter(c => c !== crystal);
+    }
+    rainbowEffect.remove();
+    rainbowActive = false;
+  }, 3000);
+  
+  // Conquista
+  if (crystalsUsed >= 5) {
+    unlockAchievement('crystal_king');
+  }
+}
+
+function handleVortexClick(vortex) {
+  if (!gameActive || gamePaused) return;
+  
+  // Absorver todas as bolinhas próximas
+  const vortexRect = vortex.getBoundingClientRect();
+  const gameAreaRect = gameArea.getBoundingClientRect();
+  
+  let absorbed = 0;
+  circles.forEach(circle => {
+    if (circle !== vortex && circle.classList.contains('circle')) {
+      const circleRect = circle.getBoundingClientRect();
+      const distance = Math.sqrt(
+        Math.pow(vortexRect.left + vortexRect.width/2 - (circleRect.left + circleRect.width/2), 2) +
+        Math.pow(vortexRect.top + vortexRect.height/2 - (circleRect.top + circleRect.height/2), 2)
+      );
+      
+      if (distance < 200) { // Raio de absorção
+        // Efeito visual de ser absorvido
+        circle.style.transition = 'all 0.5s ease';
+        circle.style.transform = `scale(0.1)`;
+        circle.style.opacity = '0';
+        
+        // Remover handler original para prevenir múltiplos cliques
+        const originalHandler = originalCircleClickHandlers.get(circle);
+        if (originalHandler) {
+          circle.removeEventListener('click', originalHandler);
+          originalCircleClickHandlers.delete(circle);
+        }
+        
+        // Pontuar
+        score += 2 * pointMultiplier;
+        coins += 1;
+        absorbed++;
+        
+        // CORREÇÃO: PONTUAÇÃO SEM CASAS DECIMAIS
+        score = Math.floor(score);
+        
+        // Remover após animação
+        setTimeout(() => {
+          if (circle.parentElement) {
+            circle.remove();
+            circles = circles.filter(c => c !== circle);
+          }
+        }, 500);
+      }
+    }
+  });
+  
+  // Bônus por absorção em massa
+  if (absorbed > 0) {
+    const bonus = absorbed * 5;
+    score += bonus;
+    coins += Math.floor(absorbed / 2);
+    
+    // CORREÇÃO: PONTUAÇÃO SEM CASAS DECIMAIS
+    score = Math.floor(score);
+    
+    showMessage(`🌪️ Vortex absorveu ${absorbed} alvos! +${bonus} pontos`, 'bonus');
+  } else {
+    showMessage('🌪️ Vortex Ativado!', 'bonus');
+  }
+  
+  // Efeito visual do vortex
+  vortex.style.background = 'radial-gradient(circle, #ff00ff, #6600cc)';
+  vortex.style.boxShadow = '0 0 60px #ff00ff';
+  
+  updateScoreboard();
+  
+  // Remover vortex
+  setTimeout(() => {
+    if (vortex.parentElement) {
+      vortex.remove();
+      circles = circles.filter(c => c !== vortex);
+    }
+  }, 1000);
+}
+
+function handleMimicClick(mimic) {
+  if (!gameActive || gamePaused) return;
+  
+  // Estatísticas
+  mimicsKilled++;
+  
+  // Grande recompensa, mas risco de penalidade se não clicar
+  score += 50 * pointMultiplier;
+  coins += 25;
+  
+  // CORREÇÃO: PONTUAÇÃO SEM CASAS DECIMAIS
+  score = Math.floor(score);
+  
+  // Efeito visual
+  mimic.style.background = 'radial-gradient(circle, #00ff00, #00cc00)';
+  mimic.style.boxShadow = '0 0 40px #00ff00';
+  
+  showMessage('🎭 Mímico Derrotado! Grande recompensa!', 'epic');
+  updateScoreboard();
+  
+  // Remover
+  setTimeout(() => {
+    if (mimic.parentElement) {
+      mimic.remove();
+      circles = circles.filter(c => c !== mimic);
+    }
+  }, 1000);
+}
+
+function handleBossClick(boss) {
+  if (!gameActive || gamePaused) return;
+  
+  // Recompensa MÁXIMA
+  const bossReward = 100 * pointMultiplier;
+  score += bossReward;
+  coins += 50;
+  
+  // CORREÇÃO: PONTUAÇÃO SEM CASAS DECIMAIS
+  score = Math.floor(score);
+  
+  // Efeito visual épico
+  boss.style.background = 'linear-gradient(45deg, #00ff00, #00cc00)';
+  boss.style.boxShadow = '0 0 80px #00ff00';
+  boss.textContent = '✅';
+  
+  showMessage(`👾 MEGA C4 DESARMADO! +${Math.floor(bossReward)} pontos!`, 'epic');
+  updateScoreboard();
+  
+  // Efeito de vitória
+  const victoryEffect = document.createElement('div');
+  victoryEffect.className = 'rainbow-effect';
+  gameArea.appendChild(victoryEffect);
+  
+  setTimeout(() => {
+    victoryEffect.remove();
+  }, 2000);
+  
+  // Remover boss
+  setTimeout(() => {
+    if (boss.parentElement) {
+      boss.remove();
+      circles = circles.filter(c => c !== boss);
+    }
+  }, 1500);
+}
+
+function handleBossExplosion(boss) {
+  if (!gameActive) return;
+  
+  // PENALIDADE MÁXIMA
+  score = Math.max(0, score - 100);
+  pointMultiplier = 1;
+  
+  // CORREÇÃO: PONTUAÇÃO SEM CASAS DECIMAIS
+  score = Math.floor(score);
+  
+  // Efeito visual catastrófico
+  const megaExplosion = document.createElement('div');
+  megaExplosion.className = 'explosion-effect';
+  megaExplosion.style.background = 'rgba(255, 0, 0, 0.8)';
+  gameArea.appendChild(megaExplosion);
+  
+  showMessage('💥💥 MEGA EXPLOSÃO! -100 pontos!', 'penalty');
+  
+  // Tremor na tela
+  gameArea.style.transform = 'translateX(10px)';
+  setTimeout(() => {
+    gameArea.style.transform = 'translateX(-10px)';
+    setTimeout(() => {
+      gameArea.style.transform = 'translateX(5px)';
+      setTimeout(() => {
+        gameArea.style.transform = 'translateX(0px)';
+      }, 50);
+    }, 50);
+  }, 50);
+  
+  setTimeout(() => {
+    megaExplosion.remove();
+  }, 1000);
+  
+  if (boss.parentElement) {
+    boss.remove();
+    circles = circles.filter(c => c !== boss);
+  }
+  
+  updateScoreboard();
+}
+
+// ===== MOVIMENTO DOS ELEMENTOS =====
+function moveElements() {
+  if (gamePaused || !movementEnabled || freezeActive) return;
+  
+  const gameWidth = gameArea.offsetWidth;
+  const gameHeight = gameArea.offsetHeight;
+  
+  circles.forEach(element => {
+    if (!element.parentElement) return;
+    
+    const rect = element.getBoundingClientRect();
+    const gameAreaRect = gameArea.getBoundingClientRect();
+    
+    let currentLeft = parseFloat(element.style.left) || 0;
+    let currentTop = parseFloat(element.style.top) || 0;
+    
+    // Aplicar efeito de aura magnética se ativo
+    if (activePowerups.magnet && element.classList.contains('circle')) {
+      // Atrair para o centro
+      const centerX = gameWidth / 2;
+      const centerY = gameHeight / 2;
+      const elementCenterX = currentLeft + rect.width / 2;
+      const elementCenterY = currentTop + rect.height / 2;
+      
+      const dx = centerX - elementCenterX;
+      const dy = centerY - elementCenterY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      if (distance > 50) { // Não atrair se já estiver muito perto
+        const force = 0.05; // Força de atração
+        element.speedX = (element.speedX || 0) + (dx / distance) * force;
+        element.speedY = (element.speedY || 0) + (dy / distance) * force;
+        
+        // Limitar velocidade máxima
+        const maxSpeed = 3;
+        const currentSpeed = Math.sqrt(element.speedX * element.speedX + element.speedY * element.speedY);
+        if (currentSpeed > maxSpeed) {
+          element.speedX = (element.speedX / currentSpeed) * maxSpeed;
+          element.speedY = (element.speedY / currentSpeed) * maxSpeed;
+        }
+      }
+    }
+    
+    // Calcular nova posição
+    let newX = currentLeft + (element.speedX || 0) * (slowmoActive ? 0.3 : 1);
+    let newY = currentTop + (element.speedY || 0) * (slowmoActive ? 0.3 : 1);
+    
+    // Verificar colisão com bordas e rebater
+    if (newX <= 0 || newX + rect.width >= gameWidth) {
+      element.speedX = -element.speedX;
+      newX = newX <= 0 ? 0 : gameWidth - rect.width;
+    }
+    
+    if (newY <= 0 || newY + rect.height >= gameHeight) {
+      element.speedY = -element.speedY;
+      newY = newY <= 0 ? 0 : gameHeight - rect.height;
+    }
+    
+    // Aplicar nova posição
+    element.style.left = `${newX}px`;
+    element.style.top = `${newY}px`;
+  });
+}
+
+// ===== EFEITOS VISUAIS =====
+function createParticles(element, points, coinsEarned) {
+  const rect = element.getBoundingClientRect();
+  const particleCount = 8;
+  
+  for (let i = 0; i < particleCount; i++) {
+    const particle = document.createElement('div');
+    particle.style.position = 'absolute';
+    particle.style.width = '6px';
+    particle.style.height = '6px';
+    particle.style.background = element.style.background;
+    particle.style.borderRadius = '50%';
+    particle.style.left = `${rect.left + rect.width/2 - 3}px`;
+    particle.style.top = `${rect.top + rect.height/2 - 3}px`;
+    particle.style.pointerEvents = 'none';
+    particle.style.zIndex = '1000';
+    
+    document.body.appendChild(particle);
+    
+    // Animação
+    const angle = (i / particleCount) * Math.PI * 2;
+    const speed = 2 + Math.random() * 2;
+    const distance = 30 + Math.random() * 40;
+    
+    const animation = particle.animate([
+      { 
+        transform: `translate(0, 0) scale(1)`,
+        opacity: 1
+      },
+      { 
+        transform: `translate(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px) scale(0.2)`,
+        opacity: 0
+      }
+    ], {
+      duration: 600 + Math.random() * 400,
+      easing: 'ease-out'
+    });
+    
+    animation.onfinish = () => {
+      particle.remove();
+    };
+  }
+  
+  // Texto flutuante de pontos
+  if (points > 0) {
+    const pointsText = document.createElement('div');
+    pointsText.textContent = `+${points}`;
+    pointsText.style.position = 'absolute';
+    pointsText.style.color = '#00ff00';
+    pointsText.style.fontWeight = 'bold';
+    pointsText.style.fontSize = '16px';
+    pointsText.style.textShadow = '0 0 3px #000';
+    pointsText.style.left = `${rect.left + rect.width/2}px`;
+    pointsText.style.top = `${rect.top}px`;
+    pointsText.style.pointerEvents = 'none';
+    pointsText.style.zIndex = '1000';
+    pointsText.style.transform = 'translateX(-50%)';
+    
+    document.body.appendChild(pointsText);
+    
+    pointsText.animate([
+      { transform: 'translate(-50%, 0)', opacity: 1 },
+      { transform: 'translate(-50%, -30px)', opacity: 0 }
+    ], {
+      duration: 1000,
+      easing: 'ease-out'
+    }).onfinish = () => {
+      pointsText.remove();
+    };
+  }
+  
+  // Texto flutuante de moedas
+  if (coinsEarned > 0) {
+    const coinsText = document.createElement('div');
+    coinsText.textContent = `🪙+${coinsEarned}`;
+    coinsText.style.position = 'absolute';
+    coinsText.style.color = '#ffd700';
+    coinsText.style.fontWeight = 'bold';
+    coinsText.style.fontSize = '14px';
+    coinsText.style.textShadow = '0 0 3px #000';
+    coinsText.style.left = `${rect.left + rect.width/2}px`;
+    coinsText.style.top = `${rect.top + 20}px`;
+    coinsText.style.pointerEvents = 'none';
+    coinsText.style.zIndex = '1000';
+    coinsText.style.transform = 'translateX(-50%)';
+    
+    document.body.appendChild(coinsText);
+    
+    coinsText.animate([
+      { transform: 'translate(-50%, 0)', opacity: 1 },
+      { transform: 'translate(-50%, -20px)', opacity: 0 }
+    ], {
+      duration: 1200,
+      easing: 'ease-out'
+    }).onfinish = () => {
+      coinsText.remove();
+    };
+  }
+}
+
+function showMessage(text, type) {
+  const message = document.createElement('div');
+  
+  switch(type) {
+    case 'warning':
+      message.className = 'warning-message';
+      break;
+    case 'bonus':
+      message.className = 'bonus-message';
+      break;
+    case 'penalty':
+      message.className = 'penalty-message';
+      break;
+    case 'epic':
+      message.className = 'epic-message';
+      break;
+    default:
+      message.className = 'bonus-message';
+  }
+  
+  message.textContent = text;
+  gameArea.appendChild(message);
+  
+  // Remover após animação
+  setTimeout(() => {
+    if (message.parentElement) {
+      message.remove();
+    }
+  }, 2000);
+}
+
+// ===== SISTEMA DE CONQUISTAS =====
+function unlockAchievement(id) {
+  if (achievements.has(id)) return;
+  
+  achievements.add(id);
+  const achievement = achievementList[id];
+  
+  // Mostrar popup
+  const popup = document.createElement('div');
+  popup.className = 'achievement-popup';
+  popup.innerHTML = `
+    <div style="font-size: 1.5rem; margin-bottom: 10px;">🏆 Conquista Desbloqueada!</div>
+    <div style="font-weight: bold; font-size: 1.2rem;">${achievement.name}</div>
+    <div style="font-size: 0.9rem; margin-top: 5px;">${achievement.desc}</div>
+  `;
+  
+  document.body.appendChild(popup);
+  
+  // Recompensa em moedas
+  const coinReward = 25;
+  totalCoins += coinReward;
+  
+  setTimeout(() => {
+    popup.remove();
+    showMessage(`💰 +${coinReward} moedas de recompensa!`, 'bonus');
+  }, 3000);
+  
+  // Verificar conquistas relacionadas
+  checkAchievements();
+  saveGameData();
+  updateStatsDisplay();
+}
+
+function checkAchievements() {
+  // Verificar todas as conquistas
+  if (score >= 50 && timeLeft >= 0) {
+    unlockAchievement('speed_demon');
+  }
+  if (score >= 200) {
+    unlockAchievement('reflex_master');
+  }
+  if (totalCoins >= 100) {
+    unlockAchievement('rich');
+  }
+  if (shopItems.time_plus.count > 0 && shopItems.slow_start.count > 0 && shopItems.magnet.count > 0) {
+    unlockAchievement('collector');
+  }
+  if (selectedTime === 0 && score >= 100) {
+    unlockAchievement('survivor');
+  }
+  if (gameMode === 'precision' && score >= 50) {
+    unlockAchievement('precise');
+  }
+  if (gameMode === 'bomberman' && c4Disarmed >= 10) {
+    unlockAchievement('bomberman');
+  }
+}
+
+// ===== INICIALIZAÇÃO FINAL =====
+// Selecionar opções padrão
+document.querySelector('.time-btn[data-time="30"]').click();
+document.querySelector('.diff-btn[data-diff="medium"]').click();
+document.querySelector('.mode-btn[data-mode="classic"]').click();
+
+// Prevenir zoom com double-tap
+let lastTouchEnd = 0;
+document.addEventListener('touchend', function (event) {
+  const now = (new Date()).getTime();
+  if (now - lastTouchEnd <= 300) {
+    event.preventDefault();
+  }
+  lastTouchEnd = now;
+}, false);
+
+// Prevenir menu de contexto
+document.addEventListener('contextmenu', event => event.preventDefault());
+</script>
+</body>
+</html>

@@ -1,1 +1,964 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Space Flamezera — Defesa da Terra (Cinematic Sci-Fi)</title>
+<style>
+  /* Paleta Sci-Fi cinematográfica */
+  :root{
+    --bg-0:#030511;
+    --bg-1:#07102a;
+    --accent:#ff6a00;
+    --accent-2:#00d4ff;
+    --hud:#cfe8ff;
+    --glass: rgba(255,255,255,0.06);
+    --panel: rgba(2,6,23,0.65);
+    --success:#34d399;
+    --danger:#ef4444;
+  }
+  html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial}
+  body{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: radial-gradient(1200px 600px at 20% 10%, rgba(0,48,88,0.15), transparent 8%),
+                radial-gradient(800px 400px at 90% 80%, rgba(160,0,80,0.06), transparent 6%),
+                linear-gradient(180deg,var(--bg-0),var(--bg-1));
+    color:var(--hud);
+    -webkit-font-smoothing:antialiased;
+  }
 
+  /* container */
+  .wrap{width:100%;max-width:1200px;padding:18px;box-sizing:border-box}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+  h1{margin:0;font-size:20px;color:white;letter-spacing:0.6px}
+  .subtitle{font-size:13px;color:#9fb6d7;margin-top:4px}
+
+  /* layout */
+  .main{display:grid;grid-template-columns: 1fr 360px;gap:16px;align-items:start}
+  .left{position:relative;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:12px;border-radius:12px;box-shadow:0 10px 30px rgba(2,6,23,0.6)}
+  .right{display:flex;flex-direction:column;gap:12px}
+
+  /* canvas */
+  canvas{display:block;width:100%;height:640px;border-radius:10px;background:transparent}
+
+  /* UI panels */
+  .panel{background:var(--panel);padding:10px;border-radius:10px}
+  .row{display:flex;align-items:center;gap:8px}
+  .btn{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 12px;border-radius:8px;color:var(--hud);cursor:pointer}
+  .btn.primary{background:linear-gradient(90deg,var(--accent),#ff3b6e);border:none;color:white}
+  .small{font-size:13px;color:#9aa4b2}
+  .muted{color:#8ea7c8}
+
+  /* menu */
+  .menu{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+  .menu .bigBtn{padding:14px 16px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);border:1px solid rgba(255,255,255,0.04);font-weight:600;cursor:pointer}
+
+  /* shop items */
+  .shopItem{display:flex;justify-content:space-between;align-items:center;border-radius:8px;padding:8px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent)}
+
+  /* achievements */
+  .ach{display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent)}
+  .ach.locked{opacity:0.45;filter:grayscale(0.35)}
+
+  /* leaderboard */
+  .lb-item{display:flex;justify-content:space-between;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,0.02);margin-bottom:6px}
+
+  /* HUD overlay */
+  .hudOverlay{position:absolute;left:16px;top:16px;display:flex;flex-direction:column;gap:6px;z-index:6}
+  .hudRow{display:flex;gap:10px;align-items:center}
+  .hpBar{width:220px;height:12px;background:rgba(255,255,255,0.06);border-radius:8px;overflow:hidden}
+  .hpFill{height:100%;background:linear-gradient(90deg,#34d399,#0ea5e9);width:100%}
+  .scoreBox{background:rgba(255,255,255,0.04);padding:8px;border-radius:8px;font-weight:600}
+
+  /* cinematic title */
+  .titleLogo{font-size:26px;color:white;display:flex;flex-direction:column;line-height:0.9}
+  .titleLogo small{font-size:12px;color:#9fb6d7}
+
+  /* responsive */
+  @media (max-width:980px){ .main{grid-template-columns:1fr} .right{order:2} canvas{height:520px} }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="titleLogo">
+        <div>🌎 Space Flamezera</div>
+        <small>Defesa da Terra — Sci-Fi Cinematic</small>
+      </div>
+      <div>
+        <button id="menuBtn" class="btn">Menu</button>
+        <button id="soundToggle" class="btn">Som: ON</button>
+      </div>
+    </header>
+
+    <div class="main">
+      <div class="left">
+        <div style="position:relative">
+          <canvas id="game"></canvas>
+
+          <!-- HUD overlay -->
+          <div class="hudOverlay" id="hudOverlay">
+            <div class="hudRow">
+              <div class="scoreBox">Score: <span id="score">0</span></div>
+              <div class="small">Fase: <strong id="stage">1</strong></div>
+              <div class="small">Vidas: <strong id="lives">3</strong></div>
+            </div>
+            <div class="hudRow">
+              <div class="small">Terra</div>
+              <div class="hpBar"><div id="planetBar" class="hpFill"></div></div>
+            </div>
+          </div>
+
+          <!-- center menu overlay -->
+          <div id="centerOverlay" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
+            <div id="centerPanel" class="panel" style="pointer-events:auto;text-align:center;display:none">
+              <div style="font-size:22px;font-weight:700">Menu</div>
+              <div style="margin-top:6px" class="small muted">Escolha uma opção</div>
+              <div style="margin-top:12px;display:flex;gap:8px;justify-content:center">
+                <button class="btn primary" id="playBtn">Jogar</button>
+                <button class="btn" id="openShop">Loja</button>
+                <button class="btn" id="openAch">Conquistas</button>
+                <button class="btn" id="openLB">Ranking</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- right column: menu / shop / achievements / ranking -->
+      <div class="right">
+        <div class="panel" id="menuPanel">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div><strong>Menu</strong><div class="small muted">Navega entre telas</div></div>
+            <div class="small">Moedas: <strong id="coins">0</strong></div>
+          </div>
+          <div style="margin-top:10px" class="menu">
+            <div class="bigBtn" id="menuPlay">▶ Jogar</div>
+            <div class="bigBtn" id="menuShop">🛒 Loja</div>
+            <div class="bigBtn" id="menuAch">🏆 Conquistas</div>
+            <div class="bigBtn" id="menuLb">📋 Ranking</div>
+            <div class="bigBtn" id="menuSettings">⚙ Configurações</div>
+          </div>
+        </div>
+
+        <div class="panel" id="shopPanel" style="display:none">
+          <strong>Loja</strong>
+          <div class="small muted">Compra upgrades permanentes com moedas (salvos localmente)</div>
+          <div style="margin-top:8px;display:flex;flex-direction:column;gap:8px">
+            <div class="shopItem">
+              <div>
+                <div><strong>Tiro Triplo (permanente)</strong></div>
+                <div class="small muted">Ativa tiro triplo permanente</div>
+              </div>
+              <div>
+                <div><strong>250</strong> ⚡</div>
+                <button class="btn" data-buy="triple">Comprar</button>
+              </div>
+            </div>
+
+            <div class="shopItem">
+              <div>
+                <div><strong>Upgrade Dano +20%</strong></div>
+                <div class="small muted">Aumenta dano permanente</div>
+              </div>
+              <div>
+                <div><strong>180</strong> ⚡</div>
+                <button class="btn" data-buy="dmg">Comprar</button>
+              </div>
+            </div>
+
+            <div class="shopItem">
+              <div>
+                <div><strong>Escudo Inicial</strong></div>
+                <div class="small muted">Comece cada partida com um escudo</div>
+              </div>
+              <div>
+                <div><strong>200</strong> ⚡</div>
+                <button class="btn" data-buy="shield">Comprar</button>
+              </div>
+            </div>
+
+            <div class="shopItem">
+              <div>
+                <div><strong>Bomba Extra</strong></div>
+                <div class="small muted">Compra 1 bomba (limpa inimigos)</div>
+              </div>
+              <div>
+                <div><strong>90</strong> ⚡</div>
+                <button class="btn" data-buy="bomb">Comprar</button>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:12px;text-align:right"><button class="btn" id="shopBack">Voltar</button></div>
+        </div>
+
+        <div class="panel" id="achPanel" style="display:none">
+          <strong>Conquistas</strong>
+          <div class="small muted">Complete metas para ganhar moedas e itens</div>
+          <div id="achList" style="margin-top:8px;display:flex;flex-direction:column;gap:8px"></div>
+          <div style="margin-top:12px;text-align:right"><button class="btn" id="achBack">Voltar</button></div>
+        </div>
+
+        <div class="panel" id="lbPanel" style="display:none">
+          <strong>Ranking local</strong>
+          <div class="small muted">Top 10 — salvo no seu navegador</div>
+          <div id="lbList" style="margin-top:8px"></div>
+          <div style="margin-top:12px;text-align:right"><button class="btn" id="lbBack">Voltar</button></div>
+        </div>
+
+        <div class="panel" id="settingsPanel" style="display:none">
+          <strong>Configurações</strong>
+          <div class="small muted" style="margin-top:6px">Ajusta preferências do jogo</div>
+          <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
+            <label><input type="checkbox" id="cbParticles" checked/> Partículas detalhadas</label>
+            <label><input type="checkbox" id="cbSFX" checked/> Efeitos sonoros</label>
+            <label><input type="checkbox" id="cbMusic" checked/> Música de fundo</label>
+          </div>
+          <div style="margin-top:12px;text-align:right"><button class="btn" id="settingsBack">Voltar</button></div>
+        </div>
+
+      </div>
+    </div>
+
+    <footer style="margin-top:12px" class="small muted">Desenvolvido com ❤️ — diz qual ajuste quer que eu faça depois (balanceamento, visual do boss, etc).</footer>
+  </div>
+
+<script>
+/*
+  Space Flamezera — Versão com Menu Principal, Loja, Conquistas, Ranking local,
+  partículas avançadas e spawn corrigido (inimigos não surgem nas bordas).
+  Salva progressão (moedas/upgrades) em localStorage.
+*/
+
+/* -------------------------
+   Storage keys & helpers
+   ------------------------- */
+const STORAGE_KEYS = {
+  COINS: 'sf_coins_v1',
+  UPGRADES: 'sf_upgrades_v1',
+  LB: 'sf_leaderboard_v1',
+  ACH: 'sf_achievements_v1'
+};
+
+function loadJSON(key, fallback){
+  try{ const v = localStorage.getItem(key); return v? JSON.parse(v) : fallback; }catch(e){ return fallback; }
+}
+function saveJSON(key,val){ localStorage.setItem(key, JSON.stringify(val)); }
+
+/* -------------------------
+   Game state
+   ------------------------- */
+const cfg = {
+  enemyMargin: 80, // margin from edges where enemies won't spawn
+  planetMaxHP: 100,
+  particlesEnabled: true
+};
+
+let game = {
+  canvas: null, ctx: null, W:0, H:0,
+  running:false, last:0,
+  score:0, stage:1, lives:3,
+  player:null, bullets:[], enemies:[], enemyBullets:[], pickups:[], explosions:[], debris:[],
+  boss:null, planetHP:cfg.planetMaxHP,
+  coins: loadJSON(STORAGE_KEYS.COINS, 0),
+  upgrades: loadJSON(STORAGE_KEYS.UPGRADES, { triple:false, dmg:0, shieldInit:false }),
+  achievements: loadJSON(STORAGE_KEYS.ACH, {}), // keyed
+  leaderboard: loadJSON(STORAGE_KEYS.LB, []),
+  settings:{ particles:true, sfx:true, music:true },
+  music: null,
+  sfx: {}
+};
+
+/* -------------------------
+   Init canvas & resize
+   ------------------------- */
+function initCanvas(){
+  game.canvas = document.getElementById('game');
+  game.ctx = game.canvas.getContext('2d');
+  function resize(){
+    const r = devicePixelRatio || 1;
+    game.W = game.canvas.clientWidth;
+    game.H = game.canvas.clientHeight;
+    game.canvas.width = Math.floor(game.W * r);
+    game.canvas.height = Math.floor(game.H * r);
+    game.ctx.setTransform(r,0,0,r,0,0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+}
+
+/* -------------------------
+   Sound assets (lightweight)
+   ------------------------- */
+function initSounds(){
+  const sfxOn = game.settings.sfx;
+  game.sfx.shoot = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+  game.sfx.explosion = new Audio('https://actions.google.com/sounds/v1/explosions/explosion.ogg');
+  game.sfx.pick = new Audio('https://actions.google.com/sounds/v1/cartoon/bling.ogg');
+  game.sfx.boss = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+  // don't autoplay music by default — create but pause
+  game.music = new Audio('https://cdn.pixabay.com/audio/2021/08/08/audio_4a24b1d0b9.mp3'); // royalty-free ambient
+  game.music.loop = true;
+  if(!game.settings.music) game.music.pause();
+}
+
+/* -------------------------
+   Save / Load helpers
+   ------------------------- */
+function saveProgress(){
+  saveJSON(STORAGE_KEYS.COINS, game.coins);
+  saveJSON(STORAGE_KEYS.UPGRADES, game.upgrades);
+  saveJSON(STORAGE_KEYS.ACH, game.achievements);
+  saveJSON(STORAGE_KEYS.LB, game.leaderboard);
+}
+
+/* -------------------------
+   UI wiring
+   ------------------------- */
+function q(id){ return document.getElementById(id); }
+
+function updateUI(){
+  q('score').textContent = game.score;
+  q('stage').textContent = game.stage;
+  q('lives').textContent = game.lives;
+  q('coins').textContent = game.coins;
+  updatePlanetBar();
+  renderLeaderboard();
+  renderAchievements();
+}
+
+function updatePlanetBar(){
+  const pct = Math.max(0, Math.min(100, Math.round((game.planetHP / cfg.planetMaxHP) * 100)));
+  q('planetBar').style.width = pct + '%';
+  if(pct > 60) q('planetBar').style.background = 'linear-gradient(90deg,#34d399,#0ea5e9)';
+  else if(pct > 30) q('planetBar').style.background = 'linear-gradient(90deg,#f59e0b,#f97316)';
+  else q('planetBar').style.background = 'linear-gradient(90deg,#ef4444,#b91c1c)';
+}
+
+/* -------------------------
+   Leaderboard
+   ------------------------- */
+function saveScore(name, score){
+  game.leaderboard.push({name,score,date:Date.now()});
+  game.leaderboard.sort((a,b)=>b.score-a.score);
+  game.leaderboard = game.leaderboard.slice(0,10);
+  saveProgress();
+  renderLeaderboard();
+}
+function renderLeaderboard(){
+  const el = q('lbList');
+  if(!el) return;
+  el.innerHTML = '';
+  if(game.leaderboard.length === 0){ el.innerHTML = '<div class="small muted">Sem scores ainda.</div>'; return; }
+  game.leaderboard.forEach((it, idx) => {
+    const div = document.createElement('div');
+    div.className = 'lb-item';
+    div.innerHTML = `<div>${idx+1}. ${escapeHtml(it.name)}</div><div>${it.score}</div>`;
+    el.appendChild(div);
+  });
+}
+
+/* -------------------------
+   Achievements
+   ------------------------- */
+const ACH_LIST = [
+  { id:'kill10', title:'Primeiros tiros', desc:'Destrói 10 inimigos', reward:50, check:(s)=> s.kills>=10 },
+  { id:'kill100', title:'Exterminador', desc:'Destrói 100 inimigos', reward:400, check:(s)=> s.kills>=100 },
+  { id:'survive5m', title:'Protetor da Terra', desc:'Sobrevive 5 minutos', reward:300, check:(s)=> s.survivedTime >= 300 },
+  { id:'boss1', title:'Slayer', desc:'Derrota 1 chefe', reward:200, check:(s)=> s.bossDefeated>=1 }
+];
+
+function renderAchievements(){
+  const container = q('achList');
+  if(!container) return;
+  container.innerHTML = '';
+  // compute stats
+  const stats = game.stats || { kills:0, survivedTime:0, bossDefeated:0 };
+  ACH_LIST.forEach(a=>{
+    const unlocked = !!game.achievements[a.id];
+    const item = document.createElement('div');
+    item.className = 'ach ' + (unlocked ? '' : 'locked');
+    item.innerHTML = `<div style="flex:1"><strong>${a.title}</strong><div class="small muted">${a.desc}</div></div>
+                      <div style="text-align:right">${unlocked? '<span style="color:var(--success)">Concluído</span>' : `<div class="small">${a.reward} ⚡</div>`}</div>`;
+    container.appendChild(item);
+  });
+}
+
+function checkAchievements(){
+  const s = game.stats || { kills:0, survivedTime:0, bossDefeated:0 };
+  ACH_LIST.forEach(a=>{
+    if(!game.achievements[a.id] && a.check(s)){
+      game.achievements[a.id] = true;
+      game.coins += a.reward;
+      // notify
+      spawnFloatingText('Conquista desbloqueada: ' + a.title + ' +' + a.reward + '⚡', game.W/2, 140, { color:'#ffd166' });
+      saveProgress();
+      updateUI();
+    }
+  });
+}
+
+/* -------------------------
+   Core game objects
+   ------------------------- */
+class Player {
+  constructor(){
+    this.x = game.W/2;
+    this.y = game.H - 140;
+    this.w = 62; this.h = 46;
+    this.cool = 0;
+    this.shield = 0;
+    this.bombs = 1;
+    this.permTriple = game.upgrades.triple || false;
+    if(game.upgrades.shieldInit) this.shield = 6;
+  }
+  update(dt){
+    const k = game.keys || {};
+    if(k.ArrowLeft || k.a) this.x -= 480 * dt;
+    if(k.ArrowRight || k.d) this.x += 480 * dt;
+    this.x = clamp(this.x, 64, game.W - 64);
+    if(this.cool > 0) this.cool -= dt;
+    if(this.shield > 0) this.shield -= dt;
+  }
+  draw(ctx){
+    // stylized cinematic defender (curvy hull)
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    // hull
+    const g = ctx.createLinearGradient(0, -this.h, 0, this.h);
+    g.addColorStop(0, '#fffaf0'); g.addColorStop(0.45, '#ffb86b'); g.addColorStop(1, '#ff3b6e');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(0, -this.h/1.6);
+    ctx.bezierCurveTo(this.w/1.6, -this.h/6, this.w/2, this.h/2, 0, this.h/2);
+    ctx.bezierCurveTo(-this.w/2, this.h/2, -this.w/1.6, -this.h/6, 0, -this.h/1.6);
+    ctx.fill();
+    // cockpit
+    ctx.beginPath(); ctx.ellipse(0, -6, 12, 8, 0, 0, Math.PI*2); ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.fill();
+    // shield
+    if(this.shield > 0){
+      ctx.beginPath(); ctx.arc(0,0, this.w*1.05, 0, Math.PI*2);
+      ctx.strokeStyle = `rgba(96,165,250,${0.5 + 0.3 * Math.sin(Date.now()/150)})`;
+      ctx.lineWidth = 3; ctx.stroke();
+    }
+    ctx.restore();
+  }
+  shoot(){
+    if(this.cool > 0) return;
+    this.cool = 0.16;
+    if(game.settings.sfx) { game.sfx.shoot.currentTime = 0; game.sfx.shoot.play(); }
+    const triple = this.permTriple || this.tripleTemp;
+    if(triple){
+      game.bullets.push({x:this.x,y:this.y-36,vy:-820,w:6,h:14,dmg:1+game.upgrades.dmg});
+      game.bullets.push({x:this.x-16,y:this.y-30,vy:-760,w:6,h:12,dmg:1+game.upgrades.dmg});
+      game.bullets.push({x:this.x+16,y:this.y-30,vy:-760,w:6,h:12,dmg:1+game.upgrades.dmg});
+    } else {
+      game.bullets.push({x:this.x,y:this.y-36,vy:-920,w:6,h:14,dmg:1+game.upgrades.dmg});
+    }
+  }
+  bomb(){
+    if(this.bombs > 0){
+      this.bombs--;
+      // clear smaller enemies and bullets
+      const removed = game.enemies.length;
+      game.enemies = [];
+      game.enemyBullets = [];
+      game.explosions.push({x:game.W/2,y:game.H/2,r:220,alpha:1});
+      if(game.settings.sfx){ game.sfx.explosion.currentTime = 0; game.sfx.explosion.play(); }
+      game.score += removed * 5;
+    }
+  }
+}
+
+/* -------------------------
+   Utility functions
+   ------------------------- */
+function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+function rand(a,b){ return a + Math.random()*(b-a); }
+function spawnFloatingText(text,x,y,opts={}){
+  const t = {text,x,y,alpha:1,dy:-40,color:opts.color||'#fff'};
+  game.debris.push(t);
+  setTimeout(()=>{ /* fade handled in loop */ }, 1);
+}
+function escapeHtml(str){ return String(str).replace(/[&<>"]/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' })[c]); }
+
+/* -------------------------
+   Spawning (fixed margins)
+   ------------------------- */
+function spawnEnemy(type='fighter'){
+  // ensure spawn x respects margin and not inside unreachable corners
+  const margin = cfg.enemyMargin;
+  const x = rand(margin, game.W - margin);
+  const y = -rand(20,100);
+  const baseSpeed = rand(40 + game.stage*5, 90 + game.stage*8);
+  const hp = (type==='fighter' ? (game.stage>4?2:1) : (type==='raider'?3:5));
+  const e = { x,y,w: (type==='fighter'?40: (type==='raider'?56:80)), h: (type==='fighter'?40: (type==='raider'?56:80)), vy:baseSpeed, hp, type, shootTimer:rand(1.2,3) };
+  game.enemies.push(e);
+}
+
+function spawnPickup(x,y,kind){
+  game.pickups.push({x,y,kind,vy:80});
+}
+
+/* -------------------------
+   Particle system & debris
+   ------------------------- */
+function addExplosion(x,y,strength=1){
+  // main explosion (for visuals)
+  game.explosions.push({x,y,r:40 + strength*40, alpha:1, t:0});
+  // debris pieces
+  const pieces = Math.floor(6 + strength*8);
+  for(let i=0;i<pieces;i++){
+    const angle = Math.random()*Math.PI*2;
+    const speed = rand(80, 260) * (0.6 + Math.random()*0.8);
+    game.debris.push({
+      x,y,vx:Math.cos(angle)*speed, vy:Math.sin(angle)*speed - rand(20,120),
+      r:rand(3,8), life:0.9 + Math.random()*0.8, col: i%2? '#ffb86b':'#ff4a6e', rot:Math.random()*8, rotSpeed:(Math.random()-0.5)*8
+    });
+  }
+  if(game.settings.sfx){
+    game.sfx.explosion.currentTime = 0; game.sfx.explosion.play();
+  }
+}
+
+/* -------------------------
+   Planet explosion / game over
+   ------------------------- */
+function planetExplode(){
+  addExplosion(game.W/2, game.H-120, 6);
+  game.running = false;
+  setTimeout(()=> {
+    const name = prompt('A Terra foi destruída — insira seu nome para o ranking (ou cancele):');
+    if(name !== null){
+      saveScore(name || 'Anônimo', game.score);
+      saveProgress();
+    }
+    resetGame();
+  }, 900);
+}
+
+/* -------------------------
+   Game reset / start
+   ------------------------- */
+function resetGame(){
+  game.score = 0; game.stage = 1; game.lives = 3;
+  game.player = null; game.bullets = []; game.enemyBullets = []; game.enemies = []; game.pickups = []; game.explosions = []; game.debris = []; game.boss = null;
+  game.planetHP = cfg.planetMaxHP;
+  game.stats = { kills:0, survivedTime:0, bossDefeated:0 };
+  updateUI();
+  render(); // one frame
+}
+function startGame(){
+  if(!game.player) game.player = new Player();
+  // apply permanent upgrades
+  game.player.permTriple = game.upgrades.triple;
+  game.running = true;
+  game.last = performance.now();
+  requestAnimationFrame(loop);
+}
+
+/* -------------------------
+   Main loop
+   ------------------------- */
+function loop(ts){
+  const dt = Math.min((ts - (game.last || ts))/1000, 0.05);
+  game.last = ts;
+  if(!game.running){
+    requestAnimationFrame(loop); return;
+  }
+
+  // update timers / timers for achievements
+  if(game.stats) game.stats.survivedTime += dt;
+
+  // spawn logic: waves and occasional stronger types
+  if(!game.boss){
+    if(Math.random() < 0.016 + 0.002 * game.stage){ spawnEnemy(Math.random()>0.88?'raider':'fighter'); }
+    if(Math.random() < 0.0015) spawnPickup(rand(120, game.W-120), -20, ['triple','shield','bomb'][Math.floor(rand(0,3))]);
+  }
+
+  // boss spawn based on score
+  if(!game.boss && game.score > game.stage * 350){
+    spawnBoss();
+    game.stage++;
+    q('stage').textContent = game.stage;
+  }
+
+  // update player
+  if(game.player) game.player.update(dt);
+
+  // update bullets
+  for(let i=game.bullets.length-1;i>=0;i--){
+    const b = game.bullets[i]; b.y += b.vy * dt;
+    if(b.y < -40) game.bullets.splice(i,1);
+  }
+  for(let i=game.enemyBullets.length-1;i>=0;i--){
+    const b = game.enemyBullets[i]; b.y += b.vy * dt;
+    if(b.y > game.H + 40) game.enemyBullets.splice(i,1);
+  }
+
+  // update enemies
+  for(let i=game.enemies.length-1;i>=0;i--){
+    const e = game.enemies[i];
+    e.y += e.vy * dt;
+    e.shootTimer -= dt;
+    if(e.shootTimer <= 0){
+      // enemy shoots downward from its center (within player's horizontal reach)
+      game.enemyBullets.push({ x:e.x, y:e.y + e.h/2 + 6, vy: 140 + game.stage*12, w:8, h:14 });
+      e.shootTimer = rand(1.2, 2.8) - Math.min(1.0, game.stage*0.03);
+    }
+    // collision bullets -> enemy
+    for(let j=game.bullets.length-1;j>=0;j--){
+      const b = game.bullets[j];
+      if(Math.abs(b.x - e.x) < (e.w/2) && Math.abs(b.y - e.y) < (e.h/2)){
+        e.hp -= b.dmg || 1; game.bullets.splice(j,1);
+        if(e.hp <= 0){
+          // explosion, coins, chance pickup
+          addExplosion(e.x, e.y, 1.2);
+          game.score += 10; game.coins += 6; game.stats.kills = (game.stats.kills||0) + 1;
+          if(Math.random() < 0.14) spawnPickup(e.x, e.y, Math.random()>0.5?'triple':'shield');
+          game.enemies.splice(i,1);
+        }
+        break;
+      }
+    }
+    // enemy reaches planet
+    if(e.y + e.h/2 >= game.H - 160){
+      game.enemies.splice(i,1);
+      game.planetHP -= 6 + Math.floor(game.stage/2);
+      if(game.planetHP <= 0){ game.planetHP = 0; updatePlanetBar(); planetExplode(); return; }
+      updatePlanetBar();
+    }
+  }
+
+  // boss behavior
+  if(game.boss){
+    const b = game.boss;
+    b.y += b.vy * dt;
+    if(b.y < 120) b.vy = 20; // enter
+    b.shootTimer -= dt;
+    if(b.shootTimer <= 0){
+      for(let k=-2;k<=2;k++){
+        game.enemyBullets.push({ x: b.x + k*32, y: b.y + b.h/2 + 8, vy: 140 + game.stage*10, w:10, h:14 });
+      }
+      b.shootTimer = 1.2 - Math.min(0.8, game.stage*0.05);
+    }
+    // collide with bullets
+    for(let j=game.bullets.length-1;j>=0;j--){
+      const bl = game.bullets[j];
+      if(Math.abs(bl.x - b.x) < b.w/2 && Math.abs(bl.y - b.y) < b.h/2){
+        b.hp -= 1;
+        game.bullets.splice(j,1);
+        game.score += 2; game.coins += 1;
+        if(b.hp <= 0){
+          addExplosion(b.x, b.y, 5);
+          game.score += 500; game.coins += 150; game.stats.bossDefeated = (game.stats.bossDefeated||0)+1;
+          game.boss = null;
+          // reward: coins + achievement check
+          checkAchievements();
+        }
+      }
+    }
+    // boss hits planet
+    if(b.y + b.h/2 >= game.H - 80){
+      game.boss = null;
+      game.planetHP -= 30;
+      if(game.planetHP <= 0){ game.planetHP = 0; updatePlanetBar(); planetExplode(); return; }
+      updatePlanetBar();
+    }
+  }
+
+  // enemy bullets hit player
+  for(let i=game.enemyBullets.length-1;i>=0;i--){
+    const b = game.enemyBullets[i];
+    if(game.player && Math.abs(b.x - game.player.x) < (b.w + game.player.w)/2 && Math.abs(b.y - game.player.y) < (b.h + game.player.h)/2){
+      // shield absorbs
+      if(game.player.shield > 0){
+        game.enemyBullets.splice(i,1);
+      } else {
+        game.enemyBullets.splice(i,1);
+        game.lives--; q('lives').textContent = game.lives;
+        if(game.lives <= 0){
+          // game over
+          game.running = false;
+          setTimeout(()=> {
+            const name = prompt('Game Over — insira seu nome para o ranking (ou cancele):');
+            if(name !== null){ saveScore(name || 'Anônimo', game.score); saveProgress(); }
+            resetGame();
+          }, 600);
+          return;
+        }
+      }
+    }
+  }
+
+  // pickups
+  for(let i=game.pickups.length-1;i>=0;i--){
+    const p = game.pickups[i];
+    p.y += p.vy * dt;
+    if(p.y > game.H + 40) { game.pickups.splice(i,1); continue; }
+    if(game.player && Math.abs(p.x - game.player.x) < 34 && Math.abs(p.y - game.player.y) < 34){
+      // collect
+      if(p.kind === 'triple'){ game.player.tripleTemp = true; setTimeout(()=>{ game.player.tripleTemp = false; }, 15000); }
+      if(p.kind === 'shield'){ game.player.shield = 8; }
+      if(p.kind === 'bomb'){ game.player.bombs = (game.player.bombs||0) + 1; }
+      game.coins += 12;
+      if(game.settings.sfx){ game.sfx.pick.currentTime = 0; game.sfx.pick.play(); }
+      game.pickups.splice(i,1);
+    }
+  }
+
+  // explosions & debris update
+  for(let i=game.explosions.length-1;i>=0;i--){
+    const ex = game.explosions[i]; ex.t = (ex.t || 0) + dt; ex.alpha -= dt * 0.6;
+    if(ex.alpha <= 0) game.explosions.splice(i,1);
+  }
+  for(let i=game.debris.length-1;i>=0;i--){
+    const d = game.debris[i];
+    d.life -= dt;
+    d.x += d.vx * dt; d.y += d.vy * dt;
+    d.vy += 220 * dt; // gravity
+    d.rot += d.rotSpeed * dt;
+    if(d.life <= 0) game.debris.splice(i,1);
+  }
+
+  // update UI counters
+  q('score').textContent = game.score;
+  q('coins').textContent = game.coins;
+  updatePlanetBar();
+  checkAchievements();
+
+  render();
+  requestAnimationFrame(loop);
+}
+
+/* -------------------------
+   Rendering
+   ------------------------- */
+function render(){
+  const ctx = game.ctx;
+  ctx.clearRect(0,0,game.W,game.H);
+
+  // cinematic starfield and nebula
+  drawBackground(ctx);
+
+  // planet (at bottom)
+  drawPlanet(ctx);
+
+  // pickups
+  game.pickups.forEach(p => drawPickup(ctx,p));
+
+  // bullets
+  game.bullets.forEach(b => {
+    ctx.fillStyle = 'rgba(255,209,102,0.98)';
+    ctx.fillRect(b.x - b.w/2, b.y - b.h/2, b.w, b.h);
+  });
+  game.enemyBullets.forEach(b => {
+    ctx.fillStyle = 'rgba(180,120,255,0.95)'; ctx.fillRect(b.x - b.w/2, b.y - b.h/2, b.w, b.h);
+  });
+
+  // enemies
+  game.enemies.forEach(e => drawEnemy(ctx,e));
+
+  // boss
+  if(game.boss) drawBoss(ctx, game.boss);
+
+  // player
+  if(game.player) game.player.draw(ctx);
+
+  // explosions (radial)
+  game.explosions.forEach(ex => {
+    const g = ctx.createRadialGradient(ex.x, ex.y, 0, ex.x, ex.y, ex.r);
+    g.addColorStop(0, `rgba(255,220,150,${ex.alpha})`);
+    g.addColorStop(0.5, `rgba(255,90,30,${Math.max(0, ex.alpha-0.1)})`);
+    g.addColorStop(1, `rgba(0,0,0,0)`);
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(ex.x, ex.y, ex.r * (1 - Math.max(0, ex.alpha)), 0, Math.PI*2); ctx.fill();
+  });
+
+  // debris pieces
+  game.debris.forEach(d => {
+    ctx.save();
+    ctx.translate(d.x, d.y);
+    ctx.rotate(d.rot);
+    ctx.fillStyle = d.col;
+    ctx.fillRect(-d.r/2, -d.r/2, d.r, d.r*0.6);
+    ctx.restore();
+  });
+
+  // floating texts
+  game.debris.filter(t => t.text).forEach((t,i) => {
+    t.alpha = (t.alpha || 1) - 0.01;
+    ctx.fillStyle = t.color || '#fff'; ctx.globalAlpha = t.alpha;
+    ctx.font = '14px sans-serif'; ctx.fillText(t.text, t.x, t.y -= 0.6);
+    ctx.globalAlpha = 1;
+    if(t.alpha <= 0) game.debris = game.debris.filter(x => x !== t);
+  });
+
+  // HUD elements drawn on canvas if desired (we use DOM for main HUD)
+}
+
+/* Background & elements drawing helpers */
+function drawBackground(ctx){
+  // moving stars (parallax)
+  for(let i=0;i<120;i++){
+    const x = (i * 37 + performance.now()*0.02) % game.W;
+    const y = (i * 53 + performance.now()*0.03) % game.H;
+    ctx.fillStyle = `rgba(255,255,255,${0.03 + (i%5)/80})`;
+    ctx.fillRect(x, y, 2, 2);
+  }
+  // subtle nebula
+  const ng = ctx.createRadialGradient(game.W*0.2, game.H*0.15, 10, game.W*0.2, game.H*0.15, game.W*0.8);
+  ng.addColorStop(0, 'rgba(0,36,56,0.12)');
+  ng.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = ng; ctx.fillRect(0,0,game.W,game.H);
+}
+function drawPlanet(ctx){
+  const cx = game.W/2, cy = game.H - 40, r = 160;
+  const g = ctx.createRadialGradient(cx, cy, r*0.1, cx, cy, r);
+  g.addColorStop(0, '#3b82f6'); g.addColorStop(0.6, '#1e3a8a'); g.addColorStop(1, 'rgba(0,0,40,0.9)');
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fillStyle = g; ctx.fill();
+  ctx.save(); ctx.shadowBlur = 30; ctx.shadowColor = '#60a5fa'; ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.stroke(); ctx.restore();
+}
+function drawEnemy(ctx,e){
+  ctx.save(); ctx.translate(e.x, e.y);
+  // hull silhouette
+  ctx.beginPath(); ctx.moveTo(0, -e.h/2); ctx.lineTo(e.w/2, e.h/8); ctx.lineTo(-e.w/2, e.h/8); ctx.closePath();
+  const g = ctx.createLinearGradient(0, -e.h/2, 0, e.h/2); g.addColorStop(0,'#fff'); g.addColorStop(0.5,'#ff9a9e'); g.addColorStop(1,'#b00040');
+  ctx.fillStyle = g; ctx.fill();
+  // visor
+  ctx.beginPath(); ctx.ellipse(0, -4, e.w*0.15, e.h*0.12, 0, 0, Math.PI*2); ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fill();
+  ctx.restore();
+}
+function drawBoss(ctx,b){
+  ctx.save(); ctx.translate(b.x, b.y);
+  const g = ctx.createLinearGradient(-b.w/2,-b.h/2,b.w/2,b.h/2); g.addColorStop(0,'#ffd1dc'); g.addColorStop(1,'#a11');
+  ctx.fillStyle = g; ctx.fillRect(-b.w/2, -b.h/2, b.w, b.h);
+  // vents and accents
+  ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillRect(-b.w/2+12, -b.h/6, b.w-24, b.h/8);
+  // HP bar is DOM overlay (see render)
+  ctx.restore();
+}
+function drawPickup(ctx,p){
+  ctx.save(); ctx.translate(p.x,p.y);
+  ctx.beginPath(); ctx.arc(0,0,12,0,Math.PI*2);
+  if(p.kind === 'triple') ctx.fillStyle = '#ffd166';
+  else if(p.kind === 'shield') ctx.fillStyle = '#60a5fa';
+  else ctx.fillStyle = '#f472b6';
+  ctx.fill();
+  ctx.restore();
+}
+
+/* -------------------------
+   Boss spawn
+   ------------------------- */
+function spawnBoss(){
+  game.boss = { x: game.W/2, y: -220, w: 260, h: 140, hp: 50 + game.stage * 30, vy: 40, shootTimer: 1.2 };
+}
+
+/* -------------------------
+   Controls & UI events
+   ------------------------- */
+game.keys = {};
+window.addEventListener('keydown', e => {
+  game.keys[e.key] = true;
+  if(e.key === ' ' || e.key === 'Spacebar' || e.key === 'Space'){ if(game.player) game.player.shoot(); }
+  if(e.key === 'b' || e.key === 'B'){ if(game.player) game.player.bomb(); }
+  if(e.key === 'Escape'){ toggleCenterMenu(); }
+});
+window.addEventListener('keyup', e => game.keys[e.key] = false);
+
+// DOM buttons
+q('menuPlay').addEventListener('click', ()=>{ q('menuPanel').style.display='none'; q('centerPanel').style.display='none'; startGame(); });
+q('menuShop').addEventListener('click', ()=>{ showPanel('shop'); });
+q('menuAch').addEventListener('click', ()=>{ showPanel('ach'); });
+q('menuLb').addEventListener('click', ()=>{ showPanel('lb'); });
+q('menuSettings').addEventListener('click', ()=>{ showPanel('settings'); });
+
+q('playBtn').addEventListener('click', ()=>{ startGame(); q('centerPanel').style.display='none'; });
+q('openShop').addEventListener('click', ()=> showPanel('shop'));
+q('openAch').addEventListener('click', ()=> showPanel('ach'));
+q('openLB').addEventListener('click', ()=> showPanel('lb'));
+q('shopBack').addEventListener('click', ()=> showPanel('menu'));
+q('achBack').addEventListener('click', ()=> showPanel('menu'));
+q('lbBack').addEventListener('click', ()=> showPanel('menu'));
+q('settingsBack').addEventListener('click', ()=> showPanel('menu'));
+
+q('menuBtn').addEventListener('click', ()=> toggleCenterMenu());
+q('soundToggle').addEventListener('click', toggleSoundSettings);
+
+function toggleCenterMenu(){
+  const panel = q('centerPanel');
+  if(panel.style.display === 'flex' || panel.style.display === 'block'){ panel.style.display = 'none'; } else { panel.style.display = 'block'; panel.style.pointerEvents='auto'; }
+}
+function showPanel(name){
+  q('menuPanel').style.display = (name === 'menu') ? 'block' : 'none';
+  q('shopPanel').style.display = (name === 'shop') ? 'block' : 'none';
+  q('achPanel').style.display = (name === 'ach') ? 'block' : 'none';
+  q('lbPanel').style.display = (name === 'lb') ? 'block' : 'none';
+  q('settingsPanel').style.display = (name === 'settings') ? 'block' : 'none';
+  if(name === 'menu') q('centerPanel').style.display = 'none';
+}
+
+/* shop purchases */
+document.querySelectorAll('[data-buy]').forEach(btn=>{
+  btn.addEventListener('click', (e)=>{
+    const what = e.currentTarget.getAttribute('data-buy');
+    let cost = 0;
+    if(what === 'triple') cost = 250;
+    if(what === 'dmg') cost = 180;
+    if(what === 'shield') cost = 200;
+    if(what === 'bomb') cost = 90;
+    if(game.coins < cost){ alert('Moedas insuficientes'); return; }
+    game.coins -= cost;
+    if(what === 'triple'){ game.upgrades.triple = true; game.player && (game.player.permTriple = true); }
+    if(what === 'dmg'){ game.upgrades.dmg = (game.upgrades.dmg || 0) + 0.2; /* percentage stored */ }
+    if(what === 'shield'){ game.upgrades.shieldInit = true; }
+    if(what === 'bomb'){ game.player = game.player || new Player(); game.player.bombs = (game.player.bombs || 0) + 1; }
+    saveProgress(); updateUI();
+    spawnFloatingText('Comprado: ' + what, game.W/2, 120);
+  });
+});
+
+/* settings toggles */
+q('cbParticles').addEventListener('change', e=>{ game.settings.particles = e.target.checked; });
+q('cbSFX').addEventListener('change', e=>{ game.settings.sfx = e.target.checked; });
+q('cbMusic').addEventListener('change', e=>{ game.settings.music = e.target.checked; if(game.settings.music) game.music.play(); else game.music.pause(); });
+
+/* sound toggle button */
+function toggleSoundSettings(){
+  const b = q('soundToggle');
+  game.settings.sfx = !game.settings.sfx;
+  b.textContent = 'Som: ' + (game.settings.sfx ? 'ON' : 'OFF');
+}
+
+/* -------------------------
+   Load / init
+   ------------------------- */
+function bootstrap(){
+  initCanvas();
+  initSounds();
+  renderLeaderboard();
+  renderAchievements();
+  updateUI();
+  render();
+  resetGame();
+}
+bootstrap();
+
+/* -------------------------
+   Helpers: save on unload
+   ------------------------- */
+window.addEventListener('beforeunload', ()=> saveProgress());
+
+/* -------------------------
+   Utility: small UI helpers
+   ------------------------- */
+function spawnCoins(n){
+  game.coins += n; saveProgress(); updateUI();
+}
+</script>
+</body>
+</html>

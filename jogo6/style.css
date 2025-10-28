@@ -1,0 +1,36 @@
+body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: 'Arial Black', sans-serif;
+    background-color: #e0f7fa; /* Um azul claro para o exterior */
+    margin: 20px;
+    color: #004d40;
+}
+
+h1 {
+    color: #0056b3;
+}
+
+#gameCanvas {
+    /* Define o "rio" em que o jogo acontece */
+    border: 5px solid #0056b3; 
+    background-color: #0088cc; /* Cor do rio */
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+}
+
+#info {
+    margin-top: 15px;
+    padding: 10px 20px;
+    border: 2px solid #0056b3;
+    border-radius: 8px;
+    font-size: 1.2em;
+    font-weight: bold;
+    display: flex;
+    gap: 20px;
+    background-color: #ffffff;
+}
+
+#info span {
+    color: #ff3d00;
+}

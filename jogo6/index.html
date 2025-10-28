@@ -1,1 +1,179 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rick River Master</title>
+    
+    <style>
+        /* CORREÇÃO CRUCIAL: Inclui padding e borda na largura total. */
+        * {
+            box-sizing: border-box;
+        }
 
+        /* 1. FUNDO DA PÁGINA (TIRA O BRANCO) */
+        body {
+            margin: 0;
+            overflow-x: hidden; 
+            background: linear-gradient(135deg, #1f1f3a 0%, #0c0c1a 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Arial', sans-serif;
+            color: white;
+            flex-direction: column;
+            padding: 20px 0; 
+        }
+
+        /* 1.1 TÍTULO DO JOGO */
+        #gameTitle {
+            font-size: 3em;
+            font-weight: bold;
+            color: #f7b32c; /* Amarelo/Laranja para destaque */
+            text-shadow: 0 0 10px rgba(247, 179, 44, 0.8), 0 0 20px rgba(247, 179, 44, 0.4);
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        /* 2. CONTÊINER PRINCIPAL */
+        #gameContainer {
+            position: relative; /* Essencial para posicionar o menu sobre o canvas */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.4);
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0, 119, 182, 0.5); 
+            max-width: 100%; 
+        }
+
+        /* 3. ESTILIZAÇÃO DO CANVAS */
+        #gameCanvas {
+            border: 5px solid #0077b6; 
+            border-radius: 10px;
+            display: block;
+        }
+
+        /* 4. ESTILIZAÇÃO DO HUD (HEADS-UP DISPLAY) */
+        #hud {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 15px;
+            padding: 10px 0;
+            background-color: rgba(0, 0, 0, 0.6);
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 179, 255, 0.7); 
+        }
+
+        .stat {
+            text-align: center;
+            font-size: 1.1em;
+            padding: 0 15px;
+        }
+
+        .stat-label {
+            font-size: 0.8em;
+            color: #ccc;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #00b3ff; 
+            text-shadow: 0 0 5px #00b3ff, 0 0 10px #005f88;
+        }
+        
+        /* 5. MENU INICIAL (CORREÇÃO 3) */
+        #menuScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 15px;
+            z-index: 10;
+        }
+
+        #menuTitle {
+            font-size: 3em;
+            color: #f7b32c;
+            margin-bottom: 20px;
+        }
+
+        #highScore {
+            font-size: 1.5em;
+            margin-bottom: 30px;
+            color: #ccc;
+        }
+
+        #startButton {
+            padding: 15px 40px;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: white;
+            background-color: #00b3ff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+            box-shadow: 0 5px #005f88;
+        }
+
+        #startButton:hover {
+            background-color: #0099e6;
+        }
+
+        #startButton:active {
+            transform: translateY(2px);
+            box-shadow: 0 3px #005f88;
+        }
+
+    </style>
+</head>
+<body>
+    <h1 id="gameTitle">RICK RIVER MASTER</h1>
+
+    <div id="gameContainer">
+        
+        <div id="hud">
+            <div class="stat">
+                <div class="stat-label">Vidas</div>
+                <div class="stat-value" id="lives">3</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Pontuação</div>
+                <div class="stat-value" id="score">0</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Velocidade</div>
+                <div class="stat-value" id="speed">3.0</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Saltos</div>
+                <div class="stat-value" id="jumps">3</div>
+            </div>
+        </div>
+
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+        <div id="menuScreen">
+            <h2 id="menuTitle">RICK RIVER MASTER</h2>
+            <p id="highScore">Recorde: 0</p>
+            <button id="startButton">INICIAR JOGO</button>
+        </div>
+    </div>
+
+    <script src="game.js"></script> 
+</body>
+</html>

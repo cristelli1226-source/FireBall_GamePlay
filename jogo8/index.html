@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Memory Visual Monstrão - Menu</title>
+<style>
+body { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family:sans-serif; background:#111; color:#fff; }
+h1 { margin-bottom:20px; }
+#menu, #gameContainer { display:flex; flex-direction:column; align-items:center; }
+button { padding:15px 30px; margin:10px; font-size:18px; cursor:pointer; border-radius:10px; border:none; background:#222; color:#fff; transition: all 0.2s; }
+button:hover { background:#444; }
+#score { font-size:24px; margin-bottom:10px; }
+#phase { font-size:20px; margin-bottom:10px; }
+#display { width:300px; height:150px; display:flex; align-items:center; justify-content:center;
+  font-size:48px; font-weight:bold; margin-bottom:20px; border-radius:20px; color:#000; transition: background 0.2s, color 0.2s; }
+#game { display:grid; grid-template-columns: repeat(6, 100px); gap:15px; margin-top:10px; }
+.color, .letter, .special, .animal {
+  width:100px; height:100px; border-radius:15px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; font-size:28px;
+  transition: all 0.15s ease; opacity:0.6;
+}
+.color.active, .letter.active, .special.active, .animal.active { opacity:1; transform: scale(1.3); box-shadow:0 0 20px #fff; }
+.letter { background:#333; }
+.special { background:#555; color:#fff; }
+.animal { background:#777; color:#000; font-size:36px; }
+#manual { position:absolute; top:10%; background:#222; color:#fff; padding:20px; border-radius:10px; font-size:18px; display:none; max-width:400px; text-align:center; }
+</style>
+</head>
+<body>
+
+<h1>Memory Visual Monstrão</h1>
+<div id="menu">
+  <button onclick="startGame('standard')">Padrão</button>
+  <button onclick="startGame('colors')">Somente Cores</button>
+  <button onclick="startGame('letters')">Somente Letras</button>
+  <button onclick="startGame('symbols')">Somente Símbolos</button>
+  <button onclick="startGame('animals')">Animais</button>
+</div>
+
+<div id="gameContainer" style="display:none;">
+  <div id="phase">Fase 1</div>
+  <div id="score">Pontuação: 0</div>
+  <div id="display">---</div>
+  <div id="game"></div>
+</div>
+
+<div id="manual"></div>
+
+<script>
+const VOICE_RATE = 3.5;
+let mode = "standard";
+let phaseNumber = 1, score = 0, sequence = [], playerSequence = [], waiting = false;
+
+const displayDiv = document.getElementById("display");
+const scoreDiv = document.getElementById("score");
+const phaseDiv = document.getElementById("phase");
+const gameDiv = document.getElementById("game");
+const menuDiv = document.getElementById("menu");
+const gameContainer = document.getElementById("gameContainer");
+const manualDiv = document.getElementById("manual");
+
+// Elementos
+const baseColors = ["red","green","blue","yellow"];
+const extraColor = {name:"purple", type:"color"};
+const letters = Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZ").map(l=>({name:l,type:"letter",key:l}));
+const symbols = ["@", "#", "!", "%", "&", "*", "$", "?", "^"].map(s=>({name:s,type:"special",key:s}));
+const allAnimals = ["🐶","🐱","🐸","🦊","🐵","🐼","🐯","🦁","🐷","🐰"];
+
+let elements = [];
+
+// Renderiza elementos
+function renderElements(){
+  gameDiv.innerHTML="";
+  elements.forEach(el=>{
+    const div=document.createElement("div");
+    div.classList.add(el.type);
+    div.id=el.name;
+
+    if(el.type==="color") div.style.background=el.name.toLowerCase();
+    else if(el.type==="letter") div.style.background="#333";
+    else if(el.type==="special") div.style.background="#555";
+    else if(el.type==="animal") div.style.background="#777";
+
+    div.textContent=el.type==="color"?"":el.name;
+    gameDiv.appendChild(div);
+
+    if(el.type==="color" || el.type==="animal") div.addEventListener("click",()=>handleClick(el.name));
+  });
+}
+
+// Inicializa fase
+function initPhase(){
+  sequence=[]; playerSequence=[]; score=0;
+  scoreDiv.innerText="Pontuação: 0";
+  displayDiv.textContent="---";
+  displayDiv.style.background="#fff0";
+  phaseDiv.innerText="Fase "+phaseNumber;
+
+  switch(mode){
+    case "standard":
+      elements=[...baseColors.map(c=>({name:c,type:"color"}))];
+      if(phaseNumber>=2) elements.push(extraColor);
+      if(phaseNumber>=3) elements.push(...letters);
+      if(phaseNumber>=4) elements.push(...symbols);
+      break;
+    case "colors": elements=[...baseColors.map(c=>({name:c,type:"color"})),extraColor]; break;
+    case "letters": elements=[...letters]; break;
+    case "symbols": elements=[...symbols]; break;
+    case "animals":
+      const count = Math.min(allAnimals.length, phaseNumber+3);
+      elements = allAnimals.slice(0,count).map(a=>({name:a,type:"animal"}));
+      break;
+  }
+
+  renderElements(); nextRound();
+}
+
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+async function speakAndWait(text, duration){
+  return new Promise(resolve=>{
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = VOICE_RATE;
+    utterance.onend = resolve;
+    speechSynthesis.speak(utterance);
+    setTimeout(resolve, duration); // Garante tempo mínimo de exibição
+  });
+}
+
+async function showSequence(){
+  waiting=true;
+  let delay=Math.max(200,500-score*10);
+
+  for(const elName of sequence){
+    let correctEl = elName;
+    let displayName = elName;
+
+    if(Math.random()<0.2){
+      const possible = elements.filter(e=>e.name!==correctEl);
+      if(possible.length) displayName = possible[Math.floor(Math.random()*possible.length)].name;
+    }
+
+    displayDiv.textContent = displayName.toUpperCase ? displayName.toUpperCase() : displayName;
+    displayDiv.style.background = (mode==="letters"||mode==="symbols")?"#fff0":correctEl;
+    displayDiv.style.color="#000";
+
+    const el=document.getElementById(correctEl);
+    if(el) el.classList.add("active");
+
+    await speakAndWait(correctEl, delay);
+
+    if(el) el.classList.remove("active");
+    displayDiv.textContent="---";
+    displayDiv.style.background="#fff0";
+    await sleep(100);
+  }
+  waiting=false;
+}
+
+function nextRound(){
+  playerSequence=[]; 
+  const randomEl = elements[Math.floor(Math.random()*elements.length)];
+  sequence.push(randomEl.name);
+  showSequence();
+}
+
+async function handleClick(name){
+  if(waiting) return;
+  playerSequence.push(name);
+  const el=document.getElementById(name);
+  if(el) el.classList.add("active");
+  await sleep(150);
+  if(el) el.classList.remove("active");
+
+  const index = playerSequence.length-1;
+  if(playerSequence[index]!==sequence[index]){
+    alert("Game Over! Fase "+phaseNumber+" Pontuação: "+score);
+    initPhase(); return;
+  }
+
+  if(playerSequence.length===sequence.length){
+    score++;
+    scoreDiv.innerText="Pontuação: "+score;
+if(score % 5 === 0){   // avança a cada 5 pontos
+  alert("🎉 Conquista desbloqueada! Próxima fase.");
+  if(phaseNumber<5) phaseNumber++;
+  else {alert("🏆 Você completou todas as fases! Mestre da Memória!"); phaseNumber=1;}
+  initPhase();
+  return;
+}
+    setTimeout(nextRound,500);
+  }
+}
+
+// Teclado
+document.addEventListener("keydown",async e=>{
+  if(waiting) return;
+  const key=e.key.toUpperCase();
+  if(!elements.some(el=>(el.type==="letter"||el.type==="special") && el.key===key)) return;
+  playerSequence.push(key);
+  const el=document.getElementById(key);
+  if(el) el.classList.add("active");
+  await sleep(150);
+  el.classList.remove("active");
+
+  const index=playerSequence.length-1;
+  if(playerSequence[index]!==sequence[index]){
+    alert("Game Over! Fase "+phaseNumber+" Pontuação: "+score);
+    initPhase(); return;
+  }
+
+  if(playerSequence.length===sequence.length){
+    score++;
+    scoreDiv.innerText="Pontuação: "+score;
+    if(score===10){
+      alert("🎉 Conquista desbloqueada! Próxima fase.");
+      if(phaseNumber<5) phaseNumber++;
+      else {alert("🏆 Você completou todas as fases! Mestre da Memória!"); phaseNumber=1;}
+      initPhase(); return;
+    }
+    setTimeout(nextRound,500);
+  }
+});
+
+// Manual
+function showManual(text){
+  manualDiv.innerText = text;
+  manualDiv.style.display = "block";
+  setTimeout(()=>manualDiv.style.display="none",10000);
+}
+
+// Inicia jogo
+function startGame(selectedMode){
+  mode=selectedMode;
+  menuDiv.style.display="none";
+  gameContainer.style.display="flex";
+  phaseNumber=1;
+
+  let manualText="";
+  switch(mode){
+    case "standard": manualText="Modo Padrão: cores, letras e símbolos. Siga o fundo, ignore o texto!"; break;
+    case "colors": manualText="Modo Cores: clique apenas nas cores que aparecem!"; break;
+    case "letters": manualText="Modo Letras: pressione as letras corretas no teclado!"; break;
+    case "symbols": manualText="Modo Símbolos: pressione os símbolos corretos no teclado!"; break;
+    case "animals": manualText="Modo Animais: clique nos animais que aparecem!"; break;
+  }
+  showManual(manualText);
+  initPhase();
+}
+</script>
+</body>
+</html>

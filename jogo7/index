@@ -1,1 +1,144 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Flappy Fireball - Junão</title>
+  <style>
+    :root{--bg:#0b1020;--accent:#ff6b35;--tube:#2b7a78;--glass:rgba(255,255,255,0.06)}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial}
+    body{display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#061226 0%, #091a2f 60%);color:#fff}
+    .frame{width:420px;height:640px;border-radius:16px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,0.6);background:linear-gradient(180deg,#071428,#052033)}
+    canvas{display:block;width:100%;height:100%;background:linear-gradient(180deg,#07243a 0%, #0b1f34 60%)}
+    .overlay{position:absolute;left:50%;transform:translateX(-50%);top:40px;text-align:center;width:90%}
+    .ui-top{position:absolute;left:16px;top:16px;color:#cde;display:flex;gap:10px;align-items:center}
+    .ui-top .score{font-weight:700;font-size:18px}
+    .center-panel{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);text-align:center}
+    .big{font-size:36px;font-weight:800;letter-spacing:1px}
+    .small{font-size:14px;color:#bcd}
+    .btn{margin:6px;padding:8px 14px;border-radius:10px;background:var(--accent);border:none;color:#111;font-weight:700;cursor:pointer}
+    .footer{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);font-size:12px;color:#98b}
+    .medal{display:inline-block;margin-top:8px;padding:6px 10px;border-radius:12px;background:var(--glass);color:#fff}
+    @media (max-width:480px){.frame{width:360px;height:640px}}
+  </style>
+</head>
+<body>
+  <div class="frame" id="gameFrame">
+    <canvas id="gameCanvas" width="420" height="640"></canvas>
+    <div class="ui-top" id="uiTop">
+      <div class="score">Score: <span id="score">0</span></div>
+      <div id="best">Best: 0</div>
+    </div>
+    <div class="center-panel" id="centerPanel">
+      <div class="big" id="title">Flappy Fireball</div>
+      <div class="small">Escolha seu personagem:</div>
+      <div style="margin:10px;">
+        <button class="btn" onclick="prevChar()">⬅️</button>
+        <span id="charName">Fireball</span>
+        <button class="btn" onclick="nextChar()">➡️</button>
+      </div>
+      <button class="btn" id="startBtn">Jogar</button>
+      <div class="medal" id="medal" style="display:none">Medalha: Bronze</div>
+    </div>
+    <div class="footer">Design by Junão • Protótipo em HTML</div>
+  </div>
 
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+
+    const scoreEl = document.getElementById('score');
+    const bestEl = document.getElementById('best');
+    const centerPanel = document.getElementById('centerPanel');
+    const startBtn = document.getElementById('startBtn');
+    const medalEl = document.getElementById('medal');
+    const charNameEl = document.getElementById('charName');
+
+    let frames = 0, state='menu', score=0;
+    let best = parseInt(localStorage.getItem('ff_best')||'0',10);
+    bestEl.textContent = `Best: ${best}`;
+
+    // characters
+    const characters = [
+      { name:'Fireball', colorA:'#fff2e6', colorB:'#ffb46b', colorC:'#ff3d00', jump:-9 },
+      { name:'Dragon', colorA:'#e0fffb', colorB:'#8af1d6', colorC:'#21cfa3', jump:-10 },
+      { name:'Phoenix', colorA:'#ffe6e6', colorB:'#ff8585', colorC:'#ff1e1e', jump:-11 }
+    ];
+    let currentChar = 0;
+
+    const bird = { x:110, y:H/2, vy:0, w:28, h:20, rotation:0, gravity:0.6, jump:characters[currentChar].jump };
+
+    const gap = 140; const pipeWidth=56; const pipes=[];
+
+    let slowTimer=0, ghostTimer=0;
+
+    function updateCharDisplay() {
+      charNameEl.textContent = characters[currentChar].name;
+      bird.jump = characters[currentChar].jump;
+    }
+
+    function prevChar() {
+      currentChar = (currentChar - 1 + characters.length) % characters.length;
+      updateCharDisplay();
+    }
+
+    function nextChar() {
+      currentChar = (currentChar + 1) % characters.length;
+      updateCharDisplay();
+    }
+
+    updateCharDisplay();
+
+    function reset(){ frames=0; score=0; pipes.length=0; slowTimer=0; ghostTimer=0; bird.y=H/2; bird.vy=0; bird.rotation=0; bird.jump=characters[currentChar].jump; }
+
+    function spawnPipe(){ const minY=80,maxY=H-160; const top=Math.random()*(maxY-minY)+minY; pipes.push({x:W+20,yTop:top,passed:false}); }
+
+    function drawRoundedRect(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); ctx.fill(); }
+
+    function draw(){
+      const g = ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#07243a'); g.addColorStop(1,'#0b1f34'); ctx.fillRect(0,0,W,H);
+      for(let i=0;i<6;i++){ ctx.globalAlpha=0.04+(i%2)*0.02; ctx.fillStyle='#fff'; ctx.fillRect((frames*0.2 + i*120)%(W+200)-100,40+i*30,140,14); } ctx.globalAlpha=1;
+      ctx.fillStyle='#2b7a78'; pipes.forEach(p=>{ drawRoundedRect(p.x,-10,pipeWidth,p.yTop,8); drawRoundedRect(p.x,p.yTop+gap,pipeWidth,H-(p.yTop+gap)+10,8); ctx.strokeStyle='rgba(0,0,0,0.18)'; ctx.lineWidth=2; ctx.strokeRect(p.x,-10,pipeWidth,p.yTop); ctx.strokeRect(p.x,p.yTop+gap,pipeWidth,H-(p.yTop+gap)+10); });
+      ctx.fillStyle='#061621'; ctx.fillRect(0,H-64,W,64); ctx.fillStyle='rgba(255,255,255,0.02)'; ctx.fillRect(0,H-68,W,4);
+      ctx.save(); ctx.translate(bird.x,bird.y); ctx.rotate(bird.rotation);
+      const c = characters[currentChar]; const grd = ctx.createRadialGradient(-6,-2,2,0,0,24); grd.addColorStop(0,c.colorA); grd.addColorStop(0.4,c.colorB); grd.addColorStop(1,c.colorC); ctx.fillStyle=grd; ctx.beginPath(); ctx.ellipse(0,0,bird.w/2,bird.h/2,0,0,Math.PI*2); ctx.fill(); ctx.fillStyle='#111'; ctx.beginPath(); ctx.arc(6,-2,2.6,0,Math.PI*2); ctx.fill();
+      ctx.globalCompositeOperation='lighter'; for(let t=0;t<4;t++){ ctx.beginPath(); ctx.ellipse(-12-t*4,0,6-t,4-t*0.8,0,0,Math.PI*2); ctx.fillStyle=`rgba(255,${120-t*30},0,${0.14+t*0.22})`; ctx.fill(); } ctx.globalCompositeOperation='source-over'; ctx.restore();
+      ctx.fillStyle='rgba(255,255,255,0.06)'; ctx.fillRect(14,14,120,38); ctx.fillStyle='#dfe6ff'; ctx.font='700 16px system-ui'; ctx.fillText(`Score: ${score}`,20,38);
+      if(slowTimer>0){ ctx.fillStyle='rgba(255,255,255,0.06)'; ctx.fillRect(W-140,14,120,38); ctx.fillStyle='#ffd6b0'; ctx.font='700 14px system-ui'; ctx.fillText(`SLOW ✔ ${Math.ceil(slowTimer/60)}s`,W-132,38); }
+      if(ghostTimer>0){ ctx.fillStyle='rgba(255,255,255,0.06)'; ctx.fillRect(W-140,60,120,38); ctx.fillStyle='#a0ffef'; ctx.font='700 14px system-ui'; ctx.fillText(`GHOST ✔ ${Math.ceil(ghostTimer/60)}s`,W-132,84); }
+    }
+
+    function update(){
+      if(state!=='playing') return; frames++;
+      if(frames%90===0) spawnPipe();
+      const g = (slowTimer>0)?bird.gravity*0.35:bird.gravity; bird.vy+=g; bird.y+=bird.vy; bird.rotation=Math.max(-0.6,Math.min(1.2,bird.vy/12));
+      for(let i=pipes.length-1;i>=0;i--){ pipes[i].x-=(slowTimer>0)?2:3; if(!pipes[i].passed && pipes[i].x+pipeWidth<bird.x){ pipes[i].passed=true; score++; scoreEl.textContent=score; } if(pipes[i].x<-pipeWidth-20) pipes.splice(i,1); }
+      if(ghostTimer<=0){ if(bird.y+bird.h/2>=H-64){ die(); } for(const p of pipes){ const bx=bird.x, by=bird.y; const withinX=bx+bird.w/2>p.x && bx-bird.w/2<p.x+pipeWidth; if(withinX){ if(by-bird.h/2<p.yTop || by+bird.h/2>p.yTop+gap){ die(); } } } }
+      if(Math.random()<0.002){ const type=Math.random(); if(type<0.4) slowTimer=60*5; else if(type<0.75) bird.vy=bird.jump*1.5; else ghostTimer=60*4; }
+      if(slowTimer>0) slowTimer--; if(ghostTimer>0) ghostTimer--;
+    }
+
+    function die(){ state='over'; centerPanel.style.display='block'; document.getElementById('title').textContent='Game Over'; startBtn.textContent='Jogar de novo';
+      let medal=null; if(score>=30) medal='Diamante'; else if(score>=20) medal='Ouro'; else if(score>=12) medal='Prata'; else if(score>=5) medal='Bronze';
+      if(score>best){ best=score; localStorage.setItem('ff_best',best); bestEl.textContent=`Best: ${best}`; }
+      if(medal){ medalEl.style.display='inline-block'; medalEl.textContent=`Medalha: ${medal}`; } else medalEl.style.display='none';
+    }
+
+    function loop(){ update(); draw(); requestAnimationFrame(loop); }
+
+    function flap(){ if(state==='menu'){ state='playing'; centerPanel.style.display='none'; startBtn.textContent='Jogar'; }
+      if(state==='over'){ reset(); state='playing'; centerPanel.style.display='none'; startBtn.textContent='Jogar'; medalEl.style.display='none'; }
+      bird.vy=bird.jump*(slowTimer>0?0.9:1);
+    }
+
+    window.addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault(); flap();}});
+    canvas.addEventListener('mousedown',e=>{flap();});
+    canvas.addEventListener('touchstart',e=>{e.preventDefault(); flap();},{passive:false});
+    startBtn.addEventListener('click',()=>{flap();});
+
+    loop();
+    centerPanel.style.display='block'; document.getElementById('title').textContent='Flappy Fireball'; startBtn.textContent='Jogar';
+  </script>
+</body>
+</html>

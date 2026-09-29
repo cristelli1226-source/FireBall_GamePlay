@@ -1,0 +1,1381 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS2 Spray Trainer</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #0a0e14;
+    color: #e6edf3;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 14px;
+    gap: 10px;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  h1 {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    color: #58a6ff;
+    text-transform: uppercase;
+    text-shadow: 0 0 12px rgba(88, 166, 255, 0.4);
+  }
+  .bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+    background: #11161d;
+    border: 1px solid #21262d;
+    border-radius: 10px;
+    padding: 8px 14px;
+  }
+  .group { display: flex; gap: 4px; align-items: center; }
+  .group-label {
+    font-size: 10px;
+    color: #6e7681;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-right: 4px;
+    font-weight: 600;
+  }
+  .sep { width: 1px; height: 22px; background: #21262d; }
+  button {
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    background: #1a1f26;
+    color: #c9d1d9;
+    border: 1px solid #30363d;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.12s ease;
+  }
+  button:hover { background: #262c36; border-color: #484f58; }
+  button.active {
+    background: #1f6feb;
+    border-color: #58a6ff;
+    color: #fff;
+    box-shadow: 0 0 10px rgba(88, 166, 255, 0.35);
+  }
+  button.reset {
+    background: #3d1e1e;
+    border-color: #6e2a2a;
+    color: #f8b8b8;
+  }
+  button.reset:hover { background: #502626; }
+  canvas {
+    background: #05080d;
+    border: 1px solid #21262d;
+    border-radius: 10px;
+    cursor: none;
+    display: block;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.6);
+    touch-action: none;
+  }
+  .stats {
+    display: flex;
+    gap: 24px;
+    font-size: 12px;
+    color: #6e7681;
+    padding: 8px 20px;
+    background: #11161d;
+    border: 1px solid #21262d;
+    border-radius: 10px;
+    align-items: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat { display: flex; align-items: baseline; gap: 6px; }
+  .stat b {
+    color: #e6edf3;
+    font-weight: 600;
+    font-size: 14px;
+    transition: color 0.2s;
+  }
+  .stat.ok b   { color: #3fb950; }
+  .stat.warn b { color: #d29922; }
+  .stat.bad b  { color: #f85149; }
+  .hint {
+    font-size: 11px;
+    color: #6e7681;
+    text-align: center;
+    max-width: 900px;
+    line-height: 1.5;
+    letter-spacing: 0.3px;
+  }
+</style>
+</head>
+<body>
+
+<h1>CS2 Spray Trainer</h1>
+
+<div class="bar">
+  <div class="group">
+    <span class="group-label">Arma</span>
+    <button data-weapon="ak47" class="active">AK-47</button>
+    <button data-weapon="m4a4">M4A4</button>
+    <button data-weapon="m4a1s">M4A1-S</button>
+  </div>
+  <div class="sep"></div>
+  <div class="group">
+    <span class="group-label">Modo</span>
+    <button data-mode="follow" class="active">🎯 Seguir</button>
+    <button data-mode="cadence">🔫 Cadência</button>
+    <button data-mode="memory">🧠 Memória</button>
+    <button data-mode="reaction">⚡ Reação</button>
+  </div>
+  <div class="sep"></div>
+  <div class="group">
+    <span class="group-label">Velocidade</span>
+    <button data-speed="0.5">50%</button>
+    <button data-speed="0.75">75%</button>
+    <button data-speed="1" class="active">100%</button>
+  </div>
+  <div class="sep"></div>
+  <div class="group">
+    <span class="group-label">Fundo</span>
+    <button data-bg="none" class="active">Nenhum</button>
+    <button data-bg="tr">TR</button>
+    <button data-bg="ct">CT</button>
+  </div>
+  <div class="sep"></div>
+  <button class="reset" id="resetBtn">Resetar</button>
+</div>
+
+<canvas id="canvas" width="960" height="620"></canvas>
+
+<div class="stats">
+  <div class="stat"><span id="lbl1">Balas:</span> <b id="statShots">0</b></div>
+  <div class="stat" id="statAvgBox"><span id="lbl2">Desvio médio:</span> <b id="statAvg">—</b></div>
+  <div class="stat" id="statAccBox"><span id="lbl3">Precisão:</span> <b id="statAcc">—</b></div>
+  <div class="stat" id="statTimeBox"><span id="lbl4">Tempo:</span> <b id="statTime">—</b></div>
+</div>
+
+<div class="hint" id="hint">Segure o botão esquerdo e siga a trajetória.</div>
+
+<script>
+'use strict';
+
+/* ============================================================
+   DADOS DAS ARMAS — PADRÕES REAIS DO CS2
+   ============================================================ */
+const WEAPONS = {
+  ak47: {
+    name: 'AK-47', rpm: 600,
+    points: [
+      [0,0],[0.2,0.35],[0,1.3],[0.15,2.75],[0.2,4.3],
+      [-0.45,5.85],[-0.85,7.25],[-1.5,8.3],[-0.65,8.9],[1.45,8.75],
+      [2.5,8.85],[1.9,9.4],[2.65,9.75],[3.95,9.35],[4.1,9.55],
+      [2.1,9.6],[1.15,9.95],[0.45,10.45],[-0.9,10.45],[-2.55,9.95],
+      [-1.5,9.85],[-1.85,10],[-1.5,10.45],[-1.1,10.65],[-2.05,10.5],
+      [-2.3,10.8],[-1.3,10.75],[0.35,10.55],[2.6,9.5],[3.3,9.55]
+    ]
+  },
+  m4a4: {
+    name: 'M4A4', rpm: 667,
+    points: [
+      [0,0],[0.1,0.35],[0.1,0.8],[-0.2,1.6],[0.15,2.65],
+      [-0.3,3.8],[-0.55,5.15],[0.25,5.9],[0.8,6.55],[1.9,6.8],
+      [1.7,7.35],[0.8,7.65],[-0.7,7.45],[-1.9,7.45],[-3.15,7.15],
+      [-3.15,7.35],[-2.75,7.55],[-3.3,7.6],[-3.95,7.5],[-3.85,7.6],
+      [-2.2,7.55],[-1.7,7.85],[-0.35,8.0],[0.15,8.1],[0.7,8.1],
+      [0.1,8.1],[0.4,8.35],[0.6,8.6],[0.75,8.65],[0.95,8.6]
+    ]
+  },
+  m4a1s: {
+    name: 'M4A1-S', rpm: 600,
+    points: [
+      [0,0],[0.05,0.3],[0.05,0.5],[-0.15,1.2],[0.05,2.1],
+      [-0.25,3.15],[-0.45,4.35],[0.25,5.05],[0.65,5.65],[1.55,5.9],
+      [1.35,6.4],[0.65,6.65],[-0.6,6.5],[-1.55,6.5],[-2.65,6.35],
+      [-2.6,6.5],[-2.2,6.65],[-2.65,6.7],[-3.3,6.6],[-3.15,6.7]
+    ]
+  }
+};
+
+/* ============================================================
+   CANVAS
+   ============================================================ */
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const W = canvas.width;
+const H = canvas.height;
+const ORIGIN_X = W / 2;
+const ORIGIN_Y = 110;
+const SCALE = 30;
+const HIT_RADIUS = 40;
+
+/* Layout do modo reação */
+const KZ_LEFT   = 400;
+const KZ_RIGHT  = 560;
+const WALL_TOP  = 100;
+const GROUND_Y  = 500;
+const LANE_Y    = 390;
+const TARGET_SCALE = 0.85;
+
+/* Hitbox do alvo (retângulo centrado no alvo) */
+const TARGET_HB_HALF_W = 40;
+const TARGET_HB_HALF_H = 95;
+const TARGET_HB_OFFSET_Y = 5;
+
+/* Progressão de velocidade no modo reação */
+const SPEED_MULT_PER_HIT = 1.10;   // +10% por acerto
+const SPEED_MULT_CAP     = 3.0;
+const BASE_SPEED         = 560;    // px/s em 100%
+
+/* ============================================================
+   ESTADO
+   ============================================================ */
+const state = {
+  weapon: 'ak47',
+  mode: 'follow',
+  speed: 1,
+  background: 'none',
+  spraying: false,
+  finished: false,
+  startTime: 0,
+  mouseHistory: [],
+  shots: [],
+  mouseX: ORIGIN_X,
+  mouseY: ORIGIN_Y,
+  reaction: {
+    target: null,
+    hits: 0,
+    wallbangs: 0,
+    shots: 0,
+    times: [],
+    speedMult: 1.0,
+    nextSpawnAt: 0,
+    lastFeedback: null,
+    impacts: []
+  }
+};
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+function pointToCanvas(p) {
+  return { x: ORIGIN_X + p[0] * SCALE, y: ORIGIN_Y + p[1] * SCALE };
+}
+
+function getEffectiveInterval() {
+  const w = WEAPONS[state.weapon];
+  return (60000 / w.rpm) / state.speed;
+}
+
+function interpolate(history, t) {
+  if (!history || history.length === 0) return null;
+  if (history.length === 1) return { x: history[0].x, y: history[0].y };
+  if (t <= history[0].t) return { x: history[0].x, y: history[0].y };
+
+  const last = history[history.length - 1];
+  if (t >= last.t) return { x: last.x, y: last.y };
+
+  for (let i = 0; i < history.length - 1; i++) {
+    const a = history[i], b = history[i + 1];
+    if (a.t <= t && t <= b.t) {
+      const dt = b.t - a.t;
+      const r = dt === 0 ? 0 : (t - a.t) / dt;
+      return { x: a.x + (b.x - a.x) * r, y: a.y + (b.y - a.y) * r };
+    }
+  }
+  return { x: last.x, y: last.y };
+}
+
+/* ============================================================
+   SILHUETAS TR / CT
+   ============================================================ */
+function drawTerroristShape() {
+  ctx.beginPath();
+  ctx.ellipse(0, -76, 21, 25, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(-16, -92);
+  ctx.quadraticCurveTo(0, -112, 16, -92);
+  ctx.quadraticCurveTo(0, -96, -16, -92);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillRect(-9, -56, 18, 14);
+  ctx.beginPath();
+  ctx.moveTo(-40, -46);
+  ctx.quadraticCurveTo(-42, -18, -34, 12);
+  ctx.lineTo(-28, 46);
+  ctx.lineTo(28, 46);
+  ctx.lineTo(34, 12);
+  ctx.quadraticCurveTo(42, -18, 40, -46);
+  ctx.quadraticCurveTo(0, -58, -40, -46);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(-38, -40);
+  ctx.quadraticCurveTo(-54, -8, -48, 28);
+  ctx.lineTo(-40, 28);
+  ctx.quadraticCurveTo(-44, -8, -28, -36);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(38, -40);
+  ctx.quadraticCurveTo(54, -8, 48, 28);
+  ctx.lineTo(40, 28);
+  ctx.quadraticCurveTo(44, -8, 28, -36);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(-28, 44); ctx.lineTo(-7, 44);
+  ctx.lineTo(-10, 125); ctx.lineTo(-28, 125);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(7, 44); ctx.lineTo(28, 44);
+  ctx.lineTo(28, 125); ctx.lineTo(10, 125);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawCTShape() {
+  ctx.beginPath();
+  ctx.arc(0, -80, 23, Math.PI, 0);
+  ctx.lineTo(23, -70);
+  ctx.lineTo(-23, -70);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(0, -68, 16, 14, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillRect(-9, -56, 18, 14);
+  ctx.beginPath();
+  ctx.moveTo(-42, -46);
+  ctx.quadraticCurveTo(-46, -16, -38, 14);
+  ctx.lineTo(-30, 46);
+  ctx.lineTo(30, 46);
+  ctx.lineTo(38, 14);
+  ctx.quadraticCurveTo(46, -16, 42, -46);
+  ctx.quadraticCurveTo(0, -58, -42, -46);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(-40, -40);
+  ctx.quadraticCurveTo(-56, -8, -50, 28);
+  ctx.lineTo(-42, 28);
+  ctx.quadraticCurveTo(-46, -8, -30, -36);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(40, -40);
+  ctx.quadraticCurveTo(56, -8, 50, 28);
+  ctx.lineTo(42, 28);
+  ctx.quadraticCurveTo(46, -8, 30, -36);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(-30, 44); ctx.lineTo(-8, 44);
+  ctx.lineTo(-10, 125); ctx.lineTo(-30, 125);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(8, 44); ctx.lineTo(30, 44);
+  ctx.lineTo(30, 125); ctx.lineTo(10, 125);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawShapeByType(type) {
+  if (type === 'ct') drawCTShape();
+  else drawTerroristShape();
+}
+
+/* ============================================================
+   SPRAY — lógica
+   ============================================================ */
+function startSpray(e) {
+  if (state.spraying) return;
+
+  state.shots = [];
+  state.mouseHistory = [];
+  state.finished = false;
+  state.spraying = true;
+  state.startTime = performance.now();
+
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+  const y = (e.clientY - rect.top)  * (canvas.height / rect.height);
+
+  state.mouseX = x;
+  state.mouseY = y;
+  state.mouseHistory.push({ t: state.startTime, x, y });
+
+  updateStats();
+  updateHint();
+}
+
+function stopSpray() {
+  if (!state.spraying) return;
+  state.spraying = false;
+  state.finished = true;
+  updateStats();
+  updateHint();
+}
+
+function update() {
+  if (!state.spraying) return;
+
+  const w = WEAPONS[state.weapon];
+  const interval = getEffectiveInterval();
+  const maxShots = w.points.length;
+  const now = performance.now();
+
+  while (state.shots.length < maxShots) {
+    const i = state.shots.length;
+    const shotTime = state.startTime + i * interval;
+    if (now < shotTime) break;
+
+    const pos = interpolate(state.mouseHistory, shotTime);
+    const target = pointToCanvas(w.points[i]);
+
+    state.shots.push({
+      i, time: shotTime,
+      ux: pos ? pos.x : state.mouseX,
+      uy: pos ? pos.y : state.mouseY,
+      tx: target.x, ty: target.y
+    });
+  }
+}
+
+/* ============================================================
+   REAÇÃO — lógica
+   ============================================================ */
+function resetReaction() {
+  state.reaction = {
+    target: null,
+    hits: 0,
+    wallbangs: 0,
+    shots: 0,
+    times: [],
+    speedMult: 1.0,
+    nextSpawnAt: performance.now() + 1800,
+    lastFeedback: null,
+    impacts: []
+  };
+}
+
+function spawnReactionTarget(now) {
+  const r = state.reaction;
+  const dir = Math.random() < 0.5 ? 1 : -1;
+  const startX = dir > 0 ? -80 : W + 80;
+  const base = BASE_SPEED * state.speed;
+  const speed = base * r.speedMult;
+  const type = state.background === 'ct' ? 'ct' : 'tr';
+
+  r.target = {
+    x: startX,
+    dir,
+    speed,
+    type,
+    enteredZoneAt: 0,
+    resolved: false,
+    dead: false,
+    deadAt: 0,
+    hitType: null,
+    frozenX: startX,
+    lastUpdate: now
+  };
+}
+
+function updateReaction() {
+  const now = performance.now();
+  const r = state.reaction;
+
+  // Fade-out do alvo morto
+  if (r.target && r.target.dead) {
+    if (now - r.target.deadAt > 500) {
+      r.target = null;
+      r.nextSpawnAt = now + 500 + Math.random() * 900;
+    }
+    return;
+  }
+
+  if (!r.target) {
+    if (now >= r.nextSpawnAt) spawnReactionTarget(now);
+    return;
+  }
+
+  const t = r.target;
+  const dt = Math.min((now - t.lastUpdate) / 1000, 0.1);
+  t.lastUpdate = now;
+  t.x += t.dir * t.speed * dt;
+
+  // Registrar entrada na porta
+  if (!t.enteredZoneAt && t.x >= KZ_LEFT && t.x <= KZ_RIGHT) {
+    t.enteredZoneAt = now;
+  }
+
+  // Alvo saiu da tela sem ser atingido
+  if (t.x < -200 || t.x > W + 200) {
+    if (!t.resolved) {
+      r.lastFeedback = { type: 'miss', reason: 'escaped', at: now };
+    }
+    r.target = null;
+    r.nextSpawnAt = now + 800 + Math.random() * 1400;
+  }
+}
+
+function handleReactionClick() {
+  const now = performance.now();
+  const r = state.reaction;
+  const mx = state.mouseX;
+  const my = state.mouseY;
+
+  // Registra impacto visual (bullet hole)
+  const impact = { x: mx, y: my, at: now, hit: false, wallbang: false };
+  r.impacts.push(impact);
+
+  const t = r.target;
+  if (!t || t.dead) {
+    // Clique no vazio - conta como tiro (para precisão)
+    r.shots++;
+    updateReactionStats();
+    return;
+  }
+
+  r.shots++;
+
+  // Checa hitbox
+  const hbCenterY = LANE_Y + TARGET_HB_OFFSET_Y;
+  const dx = Math.abs(mx - t.x);
+  const dy = Math.abs(my - hbCenterY);
+  const hit = dx < TARGET_HB_HALF_W && dy < TARGET_HB_HALF_H;
+
+  if (!hit) {
+    // Errou: alvo continua
+    r.lastFeedback = { type: 'miss', reason: 'off', at: now };
+    updateReactionStats();
+    return;
+  }
+
+  // Acertou!
+  const inDoor = t.x >= KZ_LEFT && t.x <= KZ_RIGHT;
+  const wallbang = !inDoor;
+
+  t.dead = true;
+  t.deadAt = now;
+  t.hitType = wallbang ? 'wallbang' : 'normal';
+  t.frozenX = t.x;
+  t.resolved = true;
+
+  r.hits++;
+  if (wallbang) r.wallbangs++;
+
+  // Tempo de reação (só se entrou na porta antes)
+  let rt = null;
+  if (t.enteredZoneAt) {
+    rt = now - t.enteredZoneAt;
+    r.times.push(rt);
+  }
+
+  // Progressão de velocidade
+  r.speedMult = Math.min(r.speedMult * SPEED_MULT_PER_HIT, SPEED_MULT_CAP);
+
+  // Marca o impacto como hit
+  impact.hit = true;
+  impact.wallbang = wallbang;
+
+  r.lastFeedback = {
+    type: 'hit',
+    wallbang,
+    time: rt,
+    at: now
+  };
+
+  updateReactionStats();
+}
+
+/* ============================================================
+   RENDER — SPRAY
+   ============================================================ */
+function render() {
+  ctx.fillStyle = '#05080d';
+  ctx.fillRect(0, 0, W, H);
+
+  drawGrid();
+  drawBackgroundFigure();
+  drawOriginMarker();
+
+  const w = WEAPONS[state.weapon];
+  const showAll = state.mode !== 'memory' || state.finished;
+
+  if (showAll) drawTrajectory(w.points);
+  else         drawStartPointOnly(w.points[0]);
+
+  if (showAll && state.mouseHistory.length > 1) drawUserTrace();
+  if (showAll) drawShotMarkers();
+
+  drawHUD();
+  drawCursor();
+}
+
+function drawGrid() {
+  ctx.strokeStyle = 'rgba(33, 38, 45, 0.5)';
+  ctx.lineWidth = 1;
+  const step = 40;
+  ctx.beginPath();
+  for (let x = 0; x <= W; x += step) {
+    ctx.moveTo(x + 0.5, 0); ctx.lineTo(x + 0.5, H);
+  }
+  for (let y = 0; y <= H; y += step) {
+    ctx.moveTo(0, y + 0.5); ctx.lineTo(W, y + 0.5);
+  }
+  ctx.stroke();
+}
+
+function drawBackgroundFigure() {
+  if (state.background === 'none') return;
+
+  const cx = W / 2, cy = 360, s = 1.55;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(s, s);
+
+  if (state.background === 'tr') {
+    ctx.fillStyle = 'rgba(220, 130, 60, 0.11)';
+    drawTerroristShape();
+  } else {
+    ctx.fillStyle = 'rgba(80, 140, 220, 0.11)';
+    drawCTShape();
+  }
+  ctx.restore();
+}
+
+function drawOriginMarker() {
+  ctx.strokeStyle = 'rgba(139, 148, 158, 0.25)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(ORIGIN_X - 12, ORIGIN_Y);
+  ctx.lineTo(ORIGIN_X + 12, ORIGIN_Y);
+  ctx.moveTo(ORIGIN_X, ORIGIN_Y - 12);
+  ctx.lineTo(ORIGIN_X, ORIGIN_Y + 12);
+  ctx.stroke();
+}
+
+function drawStartPointOnly(p0) {
+  const c = pointToCanvas(p0);
+  ctx.fillStyle = '#d29922';
+  ctx.beginPath();
+  ctx.arc(c.x, c.y, 7, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+function drawTrajectory(points) {
+  if (points.length < 2) return;
+  const p0 = pointToCanvas(points[0]);
+
+  ctx.strokeStyle = 'rgba(63, 185, 80, 0.55)';
+  ctx.lineWidth = 3;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(p0.x, p0.y);
+  for (let i = 1; i < points.length; i++) {
+    const p = pointToCanvas(points[i]);
+    ctx.lineTo(p.x, p.y);
+  }
+  ctx.stroke();
+
+  for (let i = 1; i < points.length; i++) {
+    const p = pointToCanvas(points[i]);
+    ctx.fillStyle = 'rgba(63, 185, 80, 0.55)';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.fillStyle = '#d29922';
+  ctx.beginPath();
+  ctx.arc(p0.x, p0.y, 7, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+function drawUserTrace() {
+  const h = state.mouseHistory;
+  if (h.length < 2) return;
+
+  ctx.strokeStyle = 'rgba(88, 166, 255, 0.85)';
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(h[0].x, h[0].y);
+  for (let i = 1; i < h.length; i++) ctx.lineTo(h[i].x, h[i].y);
+  ctx.stroke();
+}
+
+function drawShotMarkers() {
+  const strict = state.mode === 'cadence' ||
+                 (state.mode === 'memory' && state.finished);
+  const now = performance.now();
+
+  for (const s of state.shots) {
+    const dx = s.ux - s.tx, dy = s.uy - s.ty;
+    const dist = Math.hypot(dx, dy);
+
+    const since = now - s.time;
+    if (since < 260 && state.spraying) {
+      const p = since / 260;
+      ctx.strokeStyle = `rgba(255, 200, 60, ${(1 - p) * 0.7})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(s.tx, s.ty, 8 + p * 22, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    ctx.strokeStyle = 'rgba(255, 200, 60, 0.55)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(s.tx, s.ty, 8, 0, Math.PI * 2);
+    ctx.stroke();
+
+    if (strict) {
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.14)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(s.ux, s.uy);
+      ctx.lineTo(s.tx, s.ty);
+      ctx.stroke();
+    }
+
+    let color = '#58a6ff';
+    if (strict) {
+      if (dist < HIT_RADIUS * 0.5) color = '#3fb950';
+      else if (dist < HIT_RADIUS)   color = '#d29922';
+      else                          color = '#f85149';
+    }
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(s.ux, s.uy, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+}
+
+function drawHUD() {
+  const w = WEAPONS[state.weapon];
+  const max = w.points.length;
+
+  ctx.fillStyle = 'rgba(139, 148, 158, 0.8)';
+  ctx.font = '12px monospace';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillText(`${w.name}  ·  ${w.rpm} RPM  ·  ${max} balas`, 18, 18);
+
+  if (state.spraying || state.finished) {
+    ctx.textAlign = 'right';
+    ctx.fillStyle = state.spraying ? 'rgba(88, 166, 255, 0.95)' : 'rgba(230, 237, 243, 0.85)';
+    ctx.font = 'bold 22px monospace';
+    ctx.fillText(`${state.shots.length} / ${max}`, W - 18, 14);
+
+    const bw = 180, bh = 4;
+    const bx = W - 18 - bw, by = 44;
+    ctx.fillStyle = 'rgba(48, 54, 61, 0.8)';
+    ctx.fillRect(bx, by, bw, bh);
+    ctx.fillStyle = '#58a6ff';
+    ctx.fillRect(bx, by, bw * (state.shots.length / max), bh);
+  }
+  ctx.textAlign = 'left';
+}
+
+function drawCursor() {
+  const x = state.mouseX, y = state.mouseY;
+  ctx.strokeStyle = 'rgba(230, 237, 243, 0.85)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(x - 11, y); ctx.lineTo(x - 4, y);
+  ctx.moveTo(x + 4, y);  ctx.lineTo(x + 11, y);
+  ctx.moveTo(x, y - 11); ctx.lineTo(x, y - 4);
+  ctx.moveTo(x, y + 4);  ctx.lineTo(x, y + 11);
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(230, 237, 243, 0.95)';
+  ctx.beginPath();
+  ctx.arc(x, y, 1.6, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/* ============================================================
+   RENDER — REAÇÃO
+   ============================================================ */
+function renderReaction() {
+  ctx.fillStyle = '#05080d';
+  ctx.fillRect(0, 0, W, H);
+
+  drawReactionGrid();
+  drawReactionWalls();
+  drawReactionTarget();
+  drawReactionDoorFrame();
+  drawReactionImpacts();
+  drawReactionCrosshair();
+  drawReactionHUD();
+  drawReactionFeedback();
+}
+
+function drawReactionGrid() {
+  ctx.strokeStyle = 'rgba(33, 38, 45, 0.4)';
+  ctx.lineWidth = 1;
+  const step = 40;
+  ctx.beginPath();
+  for (let x = 0; x <= W; x += step) {
+    ctx.moveTo(x + 0.5, 0); ctx.lineTo(x + 0.5, H);
+  }
+  for (let y = 0; y <= H; y += step) {
+    ctx.moveTo(0, y + 0.5); ctx.lineTo(W, y + 0.5);
+  }
+  ctx.stroke();
+}
+
+function drawReactionWalls() {
+  ctx.fillStyle = '#020408';
+  ctx.fillRect(0, WALL_TOP, KZ_LEFT, GROUND_Y - WALL_TOP);
+  ctx.fillRect(KZ_RIGHT, WALL_TOP, W - KZ_RIGHT, GROUND_Y - WALL_TOP);
+
+  ctx.strokeStyle = 'rgba(40, 46, 54, 0.7)';
+  ctx.lineWidth = 1;
+  for (let y = WALL_TOP + 20; y < GROUND_Y; y += 40) {
+    ctx.beginPath();
+    ctx.moveTo(0, y + 0.5);
+    ctx.lineTo(KZ_LEFT, y + 0.5);
+    ctx.moveTo(KZ_RIGHT, y + 0.5);
+    ctx.lineTo(W, y + 0.5);
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = 'rgba(15, 20, 26, 0.9)';
+  ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+
+  ctx.strokeStyle = 'rgba(139, 148, 158, 0.35)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, GROUND_Y + 0.5);
+  ctx.lineTo(W, GROUND_Y + 0.5);
+  ctx.stroke();
+}
+
+function drawReactionTarget() {
+  const t = state.reaction.target;
+  if (!t) return;
+
+  const now = performance.now();
+  const alpha = t.dead ? Math.max(0, 1 - (now - t.deadAt) / 400) : 1;
+  if (alpha <= 0) return;
+
+  const x = t.dead ? t.frozenX : t.x;
+
+  // Wallbang hit: X-ray reveal
+  if (t.dead && t.hitType === 'wallbang') {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(x, LANE_Y);
+    ctx.scale(TARGET_SCALE, TARGET_SCALE);
+    ctx.shadowColor = 'rgba(255, 80, 80, 1)';
+    ctx.shadowBlur = 30;
+    ctx.fillStyle = 'rgba(255, 80, 80, 0.55)';
+    drawShapeByType(t.type);
+    ctx.restore();
+    return;
+  }
+
+  // Normal: clip no vão da porta
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(KZ_LEFT, WALL_TOP, KZ_RIGHT - KZ_LEFT, GROUND_Y - WALL_TOP);
+  ctx.clip();
+
+  ctx.globalAlpha = alpha;
+  ctx.translate(x, LANE_Y);
+  ctx.scale(TARGET_SCALE, TARGET_SCALE);
+
+  ctx.shadowColor = t.dead
+    ? 'rgba(255, 80, 80, 1)'
+    : (t.type === 'ct' ? 'rgba(80, 140, 220, 0.9)' : 'rgba(220, 130, 60, 0.9)');
+  ctx.shadowBlur = 22;
+
+  if (t.dead) {
+    ctx.fillStyle = 'rgba(255, 100, 100, 0.95)';
+  } else {
+    ctx.fillStyle = t.type === 'ct'
+      ? 'rgba(150, 195, 255, 0.95)'
+      : 'rgba(255, 175, 90, 0.95)';
+  }
+
+  drawShapeByType(t.type);
+  ctx.restore();
+}
+
+function drawReactionDoorFrame() {
+  ctx.strokeStyle = 'rgba(88, 166, 255, 0.45)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(KZ_LEFT + 1, WALL_TOP + 1, KZ_RIGHT - KZ_LEFT - 2, GROUND_Y - WALL_TOP - 2);
+
+  ctx.strokeStyle = 'rgba(88, 166, 255, 0.85)';
+  ctx.lineWidth = 3;
+  const c = 18;
+  ctx.beginPath();
+  ctx.moveTo(KZ_LEFT, WALL_TOP + c); ctx.lineTo(KZ_LEFT, WALL_TOP); ctx.lineTo(KZ_LEFT + c, WALL_TOP);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(KZ_RIGHT - c, WALL_TOP); ctx.lineTo(KZ_RIGHT, WALL_TOP); ctx.lineTo(KZ_RIGHT, WALL_TOP + c);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(KZ_LEFT, GROUND_Y - c); ctx.lineTo(KZ_LEFT, GROUND_Y); ctx.lineTo(KZ_LEFT + c, GROUND_Y);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(KZ_RIGHT - c, GROUND_Y); ctx.lineTo(KZ_RIGHT, GROUND_Y); ctx.lineTo(KZ_RIGHT, GROUND_Y - c);
+  ctx.stroke();
+
+  ctx.fillStyle = 'rgba(88, 166, 255, 0.55)';
+  ctx.font = '10px monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('PORTA DO MEIO', (KZ_LEFT + KZ_RIGHT) / 2, WALL_TOP - 6);
+  ctx.textBaseline = 'top';
+}
+
+function drawReactionImpacts() {
+  const now = performance.now();
+  const r = state.reaction;
+
+  r.impacts = r.impacts.filter(imp => now - imp.at < 1500);
+
+  for (const imp of r.impacts) {
+    const age = now - imp.at;
+
+    if (imp.hit) {
+      const ha = Math.max(0, 1 - age / 300);
+      if (ha <= 0) continue;
+
+      const size = 13;
+      const inner = 5;
+      ctx.strokeStyle = imp.wallbang
+        ? `rgba(255, 80, 80, ${ha})`
+        : `rgba(255, 255, 255, ${ha})`;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(imp.x - size, imp.y - size); ctx.lineTo(imp.x - inner, imp.y - inner);
+      ctx.moveTo(imp.x + size, imp.y - size); ctx.lineTo(imp.x + inner, imp.y - inner);
+      ctx.moveTo(imp.x - size, imp.y + size); ctx.lineTo(imp.x - inner, imp.y + inner);
+      ctx.moveTo(imp.x + size, imp.y + size); ctx.lineTo(imp.x + inner, imp.y + inner);
+      ctx.stroke();
+    } else {
+      const alpha = 1 - age / 1500;
+      ctx.fillStyle = `rgba(0, 0, 0, ${alpha * 0.9})`;
+      ctx.beginPath();
+      ctx.arc(imp.x, imp.y, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = `rgba(180, 180, 180, ${alpha * 0.6})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(imp.x, imp.y, 4.5, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+}
+
+function drawReactionCrosshair() {
+  const x = state.mouseX;
+  const y = state.mouseY;
+
+  ctx.strokeStyle = 'rgba(88, 166, 255, 0.45)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(x, y, 14, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.strokeStyle = 'rgba(230, 237, 243, 0.95)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(x - 20, y); ctx.lineTo(x - 8, y);
+  ctx.moveTo(x + 8, y);  ctx.lineTo(x + 20, y);
+  ctx.moveTo(x, y - 20); ctx.lineTo(x, y - 8);
+  ctx.moveTo(x, y + 8);  ctx.lineTo(x, y + 20);
+  ctx.stroke();
+
+  ctx.fillStyle = 'rgba(230, 237, 243, 0.95)';
+  ctx.beginPath();
+  ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawReactionHUD() {
+  const r = state.reaction;
+  const speedLabel = state.speed === 1 ? '100' : state.speed === 0.75 ? '75' : '50';
+  const typeLabel = state.background === 'ct' ? 'CT' : 'TR';
+
+  ctx.fillStyle = 'rgba(139, 148, 158, 0.8)';
+  ctx.font = '12px monospace';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillText(`Reação · alvo ${typeLabel} · base ${speedLabel}%`, 18, 18);
+
+  // Barra de progresso da velocidade
+  const multPct = (r.speedMult - 1) / (SPEED_MULT_CAP - 1); // 0..1
+  const barW = 140, barH = 4;
+  const barX = 18, barY = 38;
+
+  ctx.fillStyle = 'rgba(48, 54, 61, 0.8)';
+  ctx.fillRect(barX, barY, barW, barH);
+
+  // Cor gradiente pelo multiplicador
+  const color = r.speedMult < 1.5 ? '#3fb950' : r.speedMult < 2.2 ? '#d29922' : '#f85149';
+  ctx.fillStyle = color;
+  ctx.fillRect(barX, barY, barW * multPct, barH);
+
+  ctx.fillStyle = color;
+  ctx.font = 'bold 11px monospace';
+  ctx.fillText(`SPEED ×${r.speedMult.toFixed(2)}`, barX + barW + 8, barY - 4);
+
+  // Indicador "aguardando"
+  ctx.textAlign = 'right';
+  if (!r.target) {
+    const pulse = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(performance.now() / 250));
+    ctx.fillStyle = `rgba(88, 166, 255, ${0.5 * pulse})`;
+    ctx.beginPath();
+    ctx.arc(W - 30, 26, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(139, 148, 158, 0.6)';
+    ctx.font = '11px monospace';
+    ctx.fillText('aguardando', W - 46, 20);
+  } else if (r.target.dead) {
+    ctx.fillStyle = 'rgba(139, 148, 158, 0.5)';
+    ctx.font = '11px monospace';
+    ctx.fillText('próximo alvo...', W - 18, 20);
+  }
+
+  ctx.textAlign = 'left';
+}
+
+function drawReactionFeedback() {
+  const r = state.reaction;
+  if (!r.lastFeedback) return;
+  const now = performance.now();
+  const since = now - r.lastFeedback.at;
+  const DURATION = 700;
+  if (since > DURATION) return;
+
+  const alpha = 1 - since / DURATION;
+  const cx = (KZ_LEFT + KZ_RIGHT) / 2;
+
+  if (r.lastFeedback.type === 'hit') {
+    const isWallbang = r.lastFeedback.wallbang;
+    const color = isWallbang ? '255, 80, 80' : '63, 185, 80';
+
+    ctx.strokeStyle = `rgba(${color}, ${alpha * 0.85})`;
+    ctx.lineWidth = 4;
+    ctx.strokeRect(KZ_LEFT, WALL_TOP, KZ_RIGHT - KZ_LEFT, GROUND_Y - WALL_TOP);
+
+    ctx.fillStyle = `rgba(${color}, ${alpha})`;
+    ctx.font = 'bold 34px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    if (r.lastFeedback.time != null) {
+      ctx.fillText(`${r.lastFeedback.time.toFixed(0)} ms`, cx, WALL_TOP - 42);
+    } else {
+      ctx.fillText('HIT', cx, WALL_TOP - 42);
+    }
+
+    ctx.font = 'bold 12px monospace';
+    if (isWallbang) {
+      ctx.fillText('WALLBANG!', cx, WALL_TOP - 20);
+    } else {
+      ctx.fillText('ACERTOU', cx, WALL_TOP - 20);
+    }
+  } else {
+    ctx.strokeStyle = `rgba(248, 81, 73, ${alpha * 0.85})`;
+    ctx.lineWidth = 4;
+    ctx.strokeRect(KZ_LEFT, WALL_TOP, KZ_RIGHT - KZ_LEFT, GROUND_Y - WALL_TOP);
+
+    let msg = 'ERROU';
+    if (r.lastFeedback.reason === 'escaped') msg = 'ESCAPOU';
+    if (r.lastFeedback.reason === 'off')     msg = 'FORA DO ALVO';
+
+    ctx.fillStyle = `rgba(248, 81, 73, ${alpha})`;
+    ctx.font = 'bold 26px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(msg, cx, WALL_TOP - 30);
+  }
+
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+}
+
+/* ============================================================
+   ESTATÍSTICAS
+   ============================================================ */
+function updateStats() {
+  document.getElementById('lbl1').textContent = 'Balas:';
+  document.getElementById('lbl2').textContent = 'Desvio médio:';
+  document.getElementById('lbl3').textContent = 'Precisão:';
+  document.getElementById('lbl4').textContent = 'Tempo:';
+
+  const elShots = document.getElementById('statShots');
+  const elAvg   = document.getElementById('statAvg');
+  const elAcc   = document.getElementById('statAcc');
+  const elTime  = document.getElementById('statTime');
+  const boxAvg  = document.getElementById('statAvgBox');
+  const boxAcc  = document.getElementById('statAccBox');
+  const boxTime = document.getElementById('statTimeBox');
+
+  elShots.textContent = state.shots.length;
+
+  if (state.spraying) {
+    elTime.textContent = ((performance.now() - state.startTime) / 1000).toFixed(2) + ' s';
+  } else if (state.finished && state.shots.length > 0) {
+    const totalTime = state.shots[state.shots.length - 1].time - state.startTime;
+    elTime.textContent = (totalTime / 1000).toFixed(2) + ' s';
+  } else {
+    elTime.textContent = '—';
+  }
+  boxTime.className = 'stat';
+
+  if (state.shots.length === 0) {
+    elAvg.textContent = '—'; elAcc.textContent = '—';
+    boxAvg.className = 'stat'; boxAcc.className = 'stat';
+    return;
+  }
+
+  if (state.mode === 'memory' && state.spraying) {
+    elAvg.textContent = '?'; elAcc.textContent = '?';
+    boxAvg.className = 'stat'; boxAcc.className = 'stat';
+    return;
+  }
+
+  let total = 0, good = 0;
+  for (const s of state.shots) {
+    const d = Math.hypot(s.ux - s.tx, s.uy - s.ty);
+    total += d;
+    if (d < HIT_RADIUS) good++;
+  }
+
+  const avg = total / state.shots.length;
+  const acc = (good / state.shots.length) * 100;
+
+  elAvg.textContent = avg.toFixed(1) + ' px';
+  elAcc.textContent = acc.toFixed(0) + ' %';
+
+  boxAvg.className = 'stat ' + (avg < 25 ? 'ok' : avg < 60 ? 'warn' : 'bad');
+  boxAcc.className = 'stat ' + (acc >= 80 ? 'ok' : acc >= 50 ? 'warn' : 'bad');
+}
+
+function updateReactionStats() {
+  document.getElementById('lbl1').textContent = 'Acertos:';
+  document.getElementById('lbl2').textContent = 'Reação média:';
+  document.getElementById('lbl3').textContent = 'Precisão:';
+  document.getElementById('lbl4').textContent = 'Wallbangs:';
+
+  const r = state.reaction;
+  document.getElementById('statShots').textContent = r.hits;
+  document.getElementById('statTime').textContent  = r.wallbangs;
+
+  const boxAvg  = document.getElementById('statAvgBox');
+  const boxAcc  = document.getElementById('statAccBox');
+  const boxTime = document.getElementById('statTimeBox');
+
+  // Reação média
+  if (r.times.length > 0) {
+    const avg = r.times.reduce((a, b) => a + b, 0) / r.times.length;
+    document.getElementById('statAvg').textContent = avg.toFixed(0) + ' ms';
+    boxAvg.className = 'stat ' + (avg < 260 ? 'ok' : avg < 380 ? 'warn' : 'bad');
+  } else {
+    document.getElementById('statAvg').textContent = '—';
+    boxAvg.className = 'stat';
+  }
+
+  // Precisão
+  if (r.shots > 0) {
+    const acc = (r.hits / r.shots) * 100;
+    document.getElementById('statAcc').textContent = acc.toFixed(0) + ' %';
+    boxAcc.className = 'stat ' + (acc >= 70 ? 'ok' : acc >= 40 ? 'warn' : 'bad');
+  } else {
+    document.getElementById('statAcc').textContent = '—';
+    boxAcc.className = 'stat';
+  }
+
+  boxTime.className = 'stat ' + (r.wallbangs > 0 ? 'ok' : '');
+}
+
+function updateHint() {
+  const hint = document.getElementById('hint');
+
+  if (state.mode === 'reaction') {
+    hint.textContent = '⚡ MODO REAÇÃO — Mire com o mouse onde o TR/CT aparece. Acertos fazem o alvo ficar mais rápido. Você pode acertá-lo também atrás da parede (wallbang): adivinhe a posição e clique. Se errar, o alvo continua e você pode tentar de novo.';
+    return;
+  }
+  if (state.mode === 'follow') {
+    hint.textContent = '🎯 MODO SEGUIR — Segure o botão esquerdo e acompanhe a trajetória verde com o mouse. Foco total no desenho do movimento.';
+  } else if (state.mode === 'cadence') {
+    hint.textContent = '🔫 MODO CADÊNCIA — Siga a trajetória no ritmo exato dos disparos. A posição é interpolada e avaliada no instante de cada tiro.';
+  } else {
+    if (state.finished && state.shots.length > 0) {
+      hint.textContent = '🧠 MODO MEMÓRIA — Resultado final. Compare a sua trajetória (azul) com a correta (verde).';
+    } else {
+      hint.textContent = '🧠 MODO MEMÓRIA — Faça o spray completamente de memória. A trajetória correta aparecerá ao soltar o mouse.';
+    }
+  }
+}
+
+/* ============================================================
+   EVENTOS DE MOUSE
+   ============================================================ */
+canvas.addEventListener('pointerdown', (e) => {
+  if (e.button !== 0) return;
+  e.preventDefault();
+
+  // Atualiza posição do mouse mesmo no modo reação
+  const rect = canvas.getBoundingClientRect();
+  state.mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
+  state.mouseY = (e.clientY - rect.top)  * (canvas.height / rect.height);
+
+  if (state.mode === 'reaction') {
+    handleReactionClick();
+    return;
+  }
+
+  canvas.setPointerCapture(e.pointerId);
+  startSpray(e);
+});
+
+canvas.addEventListener('pointermove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+  const y = (e.clientY - rect.top)  * (canvas.height / rect.height);
+
+  state.mouseX = x;
+  state.mouseY = y;
+
+  // Só grava histórico no modo spray
+  if (state.mode !== 'reaction' && state.spraying) {
+    state.mouseHistory.push({ t: performance.now(), x, y });
+  }
+});
+
+canvas.addEventListener('pointerup', () => {
+  if (state.mode === 'reaction') return;
+  if (state.spraying) stopSpray();
+});
+
+canvas.addEventListener('pointercancel', () => {
+  if (state.mode === 'reaction') return;
+  if (state.spraying) stopSpray();
+});
+
+canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+window.addEventListener('blur', () => {
+  if (state.mode !== 'reaction' && state.spraying) stopSpray();
+});
+
+/* ============================================================
+   BOTÕES
+   ============================================================ */
+function resetAll() {
+  if (state.mode === 'reaction') {
+    resetReaction();
+    updateReactionStats();
+    updateHint();
+    return;
+  }
+
+  state.spraying = false;
+  state.finished = false;
+  state.shots = [];
+  state.mouseHistory = [];
+  updateStats();
+  updateHint();
+}
+
+document.querySelectorAll('[data-weapon]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-weapon]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.weapon = btn.dataset.weapon;
+    if (state.mode !== 'reaction') resetAll();
+  });
+});
+
+document.querySelectorAll('[data-mode]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-mode]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.mode = btn.dataset.mode;
+
+    // Ao entrar no modo reação, zera tudo
+    if (state.mode === 'reaction') {
+      resetReaction();
+      updateReactionStats();
+      updateHint();
+    } else {
+      resetAll();
+    }
+  });
+});
+
+document.querySelectorAll('[data-speed]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-speed]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.speed = parseFloat(btn.dataset.speed);
+    // Não reseta o progresso no modo reação (só afeta a base)
+    if (state.mode !== 'reaction') resetAll();
+  });
+});
+
+document.querySelectorAll('[data-bg]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-bg]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.background = btn.dataset.bg;
+    // Visual apenas
+  });
+});
+
+document.getElementById('resetBtn').addEventListener('click', resetAll);
+
+/* ============================================================
+   LOOP PRINCIPAL
+   ============================================================ */
+function loop() {
+  if (state.mode === 'reaction') {
+    updateReaction();
+    renderReaction();
+  } else {
+    update();
+    if (state.spraying) updateStats();
+    render();
+  }
+  requestAnimationFrame(loop);
+}
+
+/* ============================================================
+   INICIALIZAÇÃO
+   ============================================================ */
+updateHint();
+updateStats();
+loop();
+
+</script>
+</body>
+</html>
